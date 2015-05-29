@@ -1,6 +1,6 @@
 # Check the clearwater-config-manager process.
 
-check program etcd-conman-configured with path "/bin/egrep -e '^[[:space:]]*etcd_cluster[[:space:]]*=[[:space:]]*[^[:space:]]+$' /etc/clearwater/config"
+check program etcd-conman-configured with path "/bin/bash -c '. /etc/clearwater/config; if [ -z $etcd_cluster ]; then exit 1; fi; exit 0';echo $?"
   group etcd
   if status != 0 then unmonitor
 
