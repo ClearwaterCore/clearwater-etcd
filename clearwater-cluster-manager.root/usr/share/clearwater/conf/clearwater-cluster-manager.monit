@@ -2,6 +2,8 @@
 
 # Monitor the service's PID file and memory use.
 check process clearwater_cluster_manager with pidfile /var/run/clearwater-cluster-manager.pid
+  group etcd
+  depends on etcd-configured
 
   start program = "/bin/bash -c '/etc/init.d/clearwater-cluster-manager start'"
   stop program = "/bin/bash -c '/etc/init.d/clearwater-cluster-manager stop'"
