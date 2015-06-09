@@ -57,6 +57,8 @@ c = etcd.Client(local_ip, 4000)
 def load_file_into_etcd(filename, etcd_key):
     with open(filename) as f:
         for line in f.readlines():
+            if re.compile("^[ ]*#").match(line):
+                continue
             key, value = line.split("=")
             assert key != "new_servers", \
                 "Must not have a new_servers line when running this script"

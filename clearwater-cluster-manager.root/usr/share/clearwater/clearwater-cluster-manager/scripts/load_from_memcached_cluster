@@ -34,9 +34,9 @@
 
 set -ue
 
-local_site_name="site1"
 remote_site_name=""
 . /etc/clearwater/config
+[ ! -z $local_site_name ] || local_site_name=site1
 
 if [ $# -ne 1 ]
 then
