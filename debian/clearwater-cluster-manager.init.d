@@ -85,10 +85,10 @@ do_start()
     return 2
   fi
 
-  local_site_name=site1
   remote_site_name=""
   signaling_namespace=""
   . /etc/clearwater/config
+  [ ! -z $local_site_name ] || local_site_name=site1
   log_level=3
   log_directory=/var/log/clearwater-cluster-manager
   [ -r /etc/clearwater/user_settings ] && . /etc/clearwater/user_settings

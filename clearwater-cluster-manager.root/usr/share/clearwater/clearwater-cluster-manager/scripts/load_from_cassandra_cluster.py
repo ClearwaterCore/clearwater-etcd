@@ -49,7 +49,7 @@ try:
     # Use nodetool describecluster to find the nodes in the existing cluster.
     # This returns a yaml document, but in order for pyyaml to recognise the
     # output as valid yaml, we need to use tr to replace tabs with spaces.
-    command = "nodetool describecluster | tr \"\t\" \" \""
+    command = "nodetool describecluster | grep -v xss | tr \"\t\" \" \""
     if sig_namespace:
         command = "ip netns exec {} ".format(sig_namespace) + command
 
