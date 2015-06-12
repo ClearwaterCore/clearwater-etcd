@@ -148,7 +148,7 @@ def join_cassandra_cluster(cluster_view,
 
 def can_contact_cassandra():
     # Use poll-tcp to allow us to contact the signalling namespace
-    rc = run_command("/usr/share/clearwater/bin/poll-tcp 9160")
+    rc = run_command("bash -c \". /etc/clearwater/config; [ -z \"$signaling_namespace\" ] || namespace_prefix=\"ip netns exec $signaling_namespace\"; $namespace_prefix /usr/share/clearwater/bin/poll-tcp 9160\"")
     return (rc == 0)
 
 def leave_cassandra_cluster(namespace=None):

@@ -37,5 +37,5 @@
 # This script polls the local etcd process and checks whether it is healthy by
 # checking that the 4000 port is open.
 . /etc/clearwater/config
-/usr/share/clearwater/bin/poll-tcp 4000 $local_ip
+/usr/share/clearwater/bin/poll-tcp 4000 ${management_local_ip:-$local_ip}
 exit $?

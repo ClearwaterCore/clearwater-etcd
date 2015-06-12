@@ -126,7 +126,7 @@ join_cluster()
         # variables to stdout but also prints a success message so strip that
         # out before saving the variables to the temp file.
         # If we're already in the member list, remove ourselves first
-        member=$(/usr/bin/etcdctl member list | grep $local_ip | cut -f1 -d:)
+        member=$(/usr/bin/etcdctl member list | grep ${management_local_ip:-$local_ip} | cut -f1 -d:)
         if [[ $member != '' ]]
         then
           /usr/bin/etcdctl member remove $member
