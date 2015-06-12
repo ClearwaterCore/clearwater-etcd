@@ -35,13 +35,14 @@
 """Clearwater Cluster Manager
 
 Usage:
-  main.py --local-ip=IP --local-site=NAME --remote-site=NAME
+  main.py --mgmt-local-ip=IP --sig-local-ip=IP --local-site=NAME --remote-site=NAME
           [--signaling-namespace=NAME] [--foreground] [--log-level=LVL]
           [--log-directory=DIR] [--pidfile=FILE]
 
 Options:
   -h --help                   Show this screen.
-  --local-ip=IP               IP address
+  --mgmt-local-ip=IP          Management IP address
+  --sig-local-ip=IP           Signalling IP address
   --local-site=NAME           Name of local site
   --remote-site=NAME          Name of remote site
   --signaling-namespace=NAME  Name of the signaling namespace
@@ -67,9 +68,11 @@ import signal
 
 _log = logging.getLogger("cluster_manager.main")
 
-LOG_LEVELS = {'0': logging.CRITICAL,
-              '1': logging.ERROR,
-              '2': logging.WARNING,
+LOG_LEVELS = {'0': logging.ERROR,
+              '1': logging.WARNING,
+              # INFO-level logging is really useful, and not very spammy because
+              # we're not on the call path, so produce INFO logs even at level 2
+              '2': logging.INFO,
               '3': logging.INFO,
               '4': logging.DEBUG}
 
@@ -99,7 +102,8 @@ def install_sigterm_handler(plugins):
 def main(args):
     arguments = docopt(__doc__, argv=args)
 
-    listen_ip = arguments['--local-ip']
+    mgmt_ip = arguments['--mgmt-local-ip']
+    sig_ip = arguments['--sig-local-ip']
     local_site_name = arguments['--local-site']
     remote_site_name = arguments['--remote-site']
     signaling_namespace = arguments.get('--signaling-namespace')
@@ -128,7 +132,8 @@ def main(args):
 
     plugins_dir = "/usr/share/clearwater/clearwater-cluster-manager/plugins/"
     plugins = load_plugins_in_dir(plugins_dir,
-                                  PluginParams(ip=listen_ip,
+                                  PluginParams(ip=sig_ip,
+                                               mgmt_ip=mgmt_ip,
                                                local_site=local_site_name,
                                                remote_site=remote_site_name,
                                                signaling_namespace=signaling_namespace))
@@ -151,7 +156,7 @@ def main(args):
     synchronizers = []
     threads = []
     for plugin in plugins_to_use:
-        syncer = EtcdSynchronizer(plugin, listen_ip)
+        syncer = EtcdSynchronizer(plugin, sig_ip, etcd_ip=mgmt_ip)
         syncer.start_thread()
 
         synchronizers.append(syncer)
