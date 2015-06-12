@@ -34,9 +34,9 @@
 
 set -ue
 
-local_site_name="site1"
 remote_site_name=""
 . /etc/clearwater/config
+[ ! -z $local_site_name ] || local_site_name=site1
 
 if [ $# -ne 1 ]
 then
@@ -46,4 +46,4 @@ fi
 
 node_type=$1
 
-/usr/share/clearwater/clearwater-cluster-manager/env/bin/python /usr/share/clearwater/clearwater-cluster-manager/scripts/load_from_memcached_cluster.py "$local_ip" "$local_site_name" "$remote_site_name" "$node_type"
+/usr/share/clearwater/clearwater-cluster-manager/env/bin/python /usr/share/clearwater/clearwater-cluster-manager/scripts/load_from_memcached_cluster.py "${management_local_ip:-$local_ip}" "$local_site_name" "$remote_site_name" "$node_type"
