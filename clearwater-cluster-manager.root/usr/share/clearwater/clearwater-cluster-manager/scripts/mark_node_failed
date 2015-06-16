@@ -32,7 +32,7 @@
 # under which the OpenSSL Project distributes the OpenSSL toolkit software,
 # as those licenses appear in the file LICENSE-OPENSSL.
 
-set -ue
+set -e
 
 . /etc/clearwater/config
 [ ! -z $local_site_name ] || local_site_name=site1
