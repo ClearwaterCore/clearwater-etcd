@@ -34,6 +34,7 @@ import sys
 import etcd
 import json
 import os
+import re
 
 local_ip = sys.argv[1]
 local_site = sys.argv[2]
