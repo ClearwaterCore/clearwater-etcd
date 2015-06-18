@@ -32,9 +32,6 @@
 
 import etcd
 from time import sleep
-from hashlib import md5
-
-from .pdlogs import FILE_CHANGED
 
 import urllib3
 import logging
