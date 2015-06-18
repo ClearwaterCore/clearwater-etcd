@@ -69,7 +69,6 @@ class EtcdSynchronizer(object):
                     md5(value).hexdigest()))
                 _log.debug("Got new config value from etcd:\n{}".format(value))
                 self._plugin.on_config_changed(value, self._alarm)
-                FILE_CHANGED.log(filename=self._plugin.file())
 
     # Read the current value of the key from etcd (blocks until there's a
     # change).
