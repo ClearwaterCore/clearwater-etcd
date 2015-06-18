@@ -32,6 +32,7 @@
 
 import etcd
 from time import sleep
+from hashlib import md5
 
 import urllib3
 import logging
