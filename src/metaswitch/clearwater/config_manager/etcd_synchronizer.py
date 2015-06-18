@@ -32,6 +32,9 @@
 
 import etcd
 from time import sleep
+from hashlib import md5
+
+from .pdlogs import FILE_CHANGED
 
 import urllib3
 import logging
@@ -55,15 +58,20 @@ class EtcdSynchronizer(object):
         # Continue looping while the service is running.
         while not self._terminate_flag:
             # This blocks on changes to the watched key in etcd.
-            _log.debug("Waiting for change from etcd for key{}".format(
+            _log.debug("Waiting for change from etcd for key {}".format(
                          self._plugin.key()))
             value = self.read_from_etcd()
             if self._terminate_flag:
                 break
 
             if value:
+                _log.info("Got new config value from etcd - filename {}, file size {}, MD5 hash {}".format(
+                    self._plugin.file(),
+                    len(value),
+                    md5(value).hexdigest()))
                 _log.debug("Got new config value from etcd:\n{}".format(value))
                 self._plugin.on_config_changed(value, self._alarm)
+                FILE_CHANGED.log(filename=self._plugin.file())
 
     # Read the current value of the key from etcd (blocks until there's a
     # change).
@@ -71,24 +79,38 @@ class EtcdSynchronizer(object):
         value = None
         try:
             full_key = "/clearwater/" + self._site + "/configuration/" + self._plugin.key()
-            result = self._client.read(full_key, quorum=True)
 
-            # If the key hasn't changed since we last saw it, then
-            # wait for it to change before doing anything else.
-            _log.info("Read config value for {} from etcd (epoch {})".format(
-                        self._plugin.key(),
-                        result.modifiedIndex))
+            result = None
+            try:
+                result = self._client.read(full_key, quorum=True)
 
-            if result.modifiedIndex == self._index:
+                # If the key hasn't changed since we last saw it, then
+                # wait for it to change before doing anything else.
+                _log.info("Read config value for {} from etcd (epoch {})".format(
+                            self._plugin.key(),
+                            result.modifiedIndex))
+            except etcd.EtcdKeyError:
+                # If the key doesn't exist in etcd then there is currently no
+                # config.
+                _log.info("No config value for {} found".format(self._plugin.key()))
+                self._index = None
+
+            if result is None or result.modifiedIndex == self._index:
                 while not self._terminate_flag:
                     try:
                         _log.info("Watching for changes")
+
+                        # Calculate the args for the wait
+                        args = dict(wait=True,
+                                    timeout=0,
+                                    recursive=False,
+                                    quorum=True)
+                        if self._index is not None:
+                            args['waitIndex'] = result.modifiedIndex + 1
+
+                        # Wait for the key to change
                         result = self._client.read(full_key,
-                                                   wait=True,
-                                                   waitIndex=result.modifiedIndex+1,
-                                                   timeout=0,
-                                                   recursive=False,
-                                                   quorum=True)
+                                                   **args)
                         break
                     except urllib3.exceptions.TimeoutError:
                         # Timeouts after 5 seconds are expected, so ignore them
@@ -120,11 +142,6 @@ class EtcdSynchronizer(object):
             self._index = result.modifiedIndex
             value = result.value
 
-        except etcd.EtcdKeyError:
-            # If the key doesn't exist in etcd then there is currently no
-            # config.
-            self._index = None
-            pass
         except Exception as e:
             # Catch-all error handler (for invalid requests, timeouts, etc -
             # start over.
