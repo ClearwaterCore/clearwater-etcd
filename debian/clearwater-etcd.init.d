@@ -217,6 +217,15 @@ do_start()
           fi
 
           join_or_create_cluster
+	  # Lose the race by delaying... I don't like delaying, but I couldn't
+	  # determine anything concrete to wait for. There's some kind of
+	  # race between adding ourselves as a member and starting the daemon.
+	  # If the daemon comes up too fast, it will fail with an error
+	  # like this:
+	  #     2015/06/20 07:54:38 etcd: error validating peerURLs 192-168-165-80=http://192.168.165.80:2380,192-168-165-81=http://192.168.165.81:2380,192-168-165-82=http://192.168.165.82:2380,192-168-165-84=http://192.168.165.84:2380,=http://192.168.165.85:2380: member count is unequal
+	  # After that error, monit will restart the daemon and the cycle
+	  # continues forever, never recovering.
+	  sleep 5
         fi
 
         # Common arguments
