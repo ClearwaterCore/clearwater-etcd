@@ -126,7 +126,7 @@ join_cluster()
         # variables to stdout but also prints a success message so strip that
         # out before saving the variables to the temp file.
         # If we're already in the member list, remove ourselves first
-        member=$(/usr/bin/etcdctl member list | grep $local_ip | cut -f1 -d:)
+        member=$(/usr/bin/etcdctl member list | grep ${management_local_ip:-$local_ip} | cut -f1 -d:)
         if [[ $member != '' ]]
         then
           /usr/bin/etcdctl member remove $member
@@ -217,6 +217,15 @@ do_start()
           fi
 
           join_or_create_cluster
+	  # Lose the race by delaying... I don't like delaying, but I couldn't
+	  # determine anything concrete to wait for. There's some kind of
+	  # race between adding ourselves as a member and starting the daemon.
+	  # If the daemon comes up too fast, it will fail with an error
+	  # like this:
+	  #     2015/06/20 07:54:38 etcd: error validating peerURLs 192-168-165-80=http://192.168.165.80:2380,192-168-165-81=http://192.168.165.81:2380,192-168-165-82=http://192.168.165.82:2380,192-168-165-84=http://192.168.165.84:2380,=http://192.168.165.85:2380: member count is unequal
+	  # After that error, monit will restart the daemon and the cycle
+	  # continues forever, never recovering.
+	  sleep 5
         fi
 
         # Common arguments
