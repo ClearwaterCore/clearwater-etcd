@@ -122,6 +122,19 @@ join_cluster()
         done
         IFS=$OLD_IFS
 
+	# Check to make sure the cluster we want to join is healthy.
+	# If it's not, refuse to try joining. We do this because
+	# observation indicate that doing so may cause problems in the
+	# existing cluster, so to be on the safe side we check before
+	# joining. Besides joining an unhealthy cluster is not likely
+	# to work anyway, so why bother trying.
+	/usr/bin/etcdctl cluster-health 2>&1 | grep "cluster is healthy"
+        if [ $? -ne 0 ]
+        then
+          echo "Not joining an unhealthy cluster"
+          exit 2
+        fi
+
         # Tell the cluster we're joining, this prints useful environment
         # variables to stdout but also prints a success message so strip that
         # out before saving the variables to the temp file.
@@ -180,11 +193,19 @@ join_or_create_cluster()
 
 wait_for_etcd()
 {
-        # Wait for etcd to come up.
+        # Wait for etcd to come up, but timeout after 60 seconds
+        stm=$(date +%s)
         while true; do
           if nc -z $listen_ip 4000; then
             break;
           else
+	    ctm=$(date +%s)
+	    let "dtm=$ctm - $stm"
+	    echo "dtm=$dtm"
+	    if [ $dtm -gt 60 ]; then
+		echo "Etcd fail to come up"
+		exit 2
+	    fi
             sleep 1
           fi
         done
@@ -240,6 +261,23 @@ do_start()
                 || return 2
 
         wait_for_etcd
+
+        # See that etcd stays up for more than a few seconds. There have been times when
+	# we get into an infinite loop restarting etcd when its configuration
+	# won't allow it to come up. The following looks for a specific error
+	# at the end of etcd's log file and if it's there, we'll take action and
+	# prevent the loop from continuing.
+        for i in {1..5}; do
+          if ! nc -z $listen_ip 4000; then
+	    if tail -1 /var/log/clearwater-etcd/clearwater-etcd.log | grep -q "etcdserver: the data-dir used by this member must be removed[.]"; then
+		echo "etcd didn't stay up due to data-dir error - removing it..."
+		rm -rf $DATA_DIR/$advertisement_ip
+		break;
+	    fi
+          else
+            sleep 1
+          fi
+        done
 }
 
 do_rebuild()
