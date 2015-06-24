@@ -201,7 +201,6 @@ wait_for_etcd()
           else
 	    ctm=$(date +%s)
 	    let "dtm=$ctm - $stm"
-	    echo "dtm=$dtm"
 	    if [ $dtm -gt 60 ]; then
 		echo "Etcd fail to come up"
 		exit 2
