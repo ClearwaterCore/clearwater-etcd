@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Project Clearwater - IMS in the Cloud
 # Copyright (C) 2015 Metaswitch Networks Ltd
 #
@@ -31,36 +33,29 @@
 # as those licenses appear in the file LICENSE-OPENSSL.
 
 
-# Cluster states
-EMPTY = "empty"
-STABLE = "stable"
-STABLE_WITH_ERRORS = "stable with errors"
-JOIN_PENDING = "join pending"
-STARTED_JOINING = "started joining"
-JOINING_CONFIG_CHANGING = "joining, config changing"
-JOINING_RESYNCING = "joining, resyncing"
-LEAVE_PENDING = "leave pending"
-STARTED_LEAVING = "started leaving"
-LEAVING_CONFIG_CHANGING = "leaving, config changing"
-LEAVING_RESYNCING = "leaving, resyncing"
-FINISHED_LEAVING = "finished leaving"
-INVALID_CLUSTER_STATE = "invalid cluster state"
+from mock import patch
+from metaswitch.clearwater.etcd_shared.test.mock_python_etcd import EtcdFactory
+import json
+from .test_base import BaseClusterTest
+from time import sleep
 
-# Node states
-WAITING_TO_JOIN = "waiting to join"
-JOINING = "joining"
-JOINING_ACKNOWLEDGED_CHANGE = "joining, acknowledged change"
-JOINING_CONFIG_CHANGED = "joining, config changed"
-NORMAL = "normal"
-NORMAL_ACKNOWLEDGED_CHANGE = "normal, acknowledged change"
-NORMAL_CONFIG_CHANGED = "normal, config changed"
-WAITING_TO_LEAVE = "waiting to leave"
-LEAVING = "leaving"
-LEAVING_ACKNOWLEDGED_CHANGE = "leaving, acknowledged change"
-LEAVING_CONFIG_CHANGED = "leaving, config changed"
-FINISHED = "finished"
-ERROR = "error"
+class TestInvalidState(BaseClusterTest):
 
-# Pseudo-state - this state never gets written into etcd, we just delete the
-# node's entry from etcd when we hit this state
-DELETE_ME = "DELETE_ME"
+    def tearDown(self):
+        self.close_synchronizers()
+
+    @patch("etcd.Client", new=EtcdFactory)
+    def test_invalid_state(self):
+        """Force an invalid etcd state, and check that the clients don't try to
+        change it"""
+        client = EtcdFactory()
+        invalid_state= {"10.0.0.1": "joining",
+                        "10.0.0.2": "error",
+                        "10.0.2.1": "leaving"}
+        client.write("/test", json.dumps(invalid_state))
+        self.make_and_start_synchronizers(3)
+        client2 = self.syncs[0]._client
+        sleep(0.5)
+
+        end = json.loads(client2.read("/test").value)
+        self.assertEqual(end, invalid_state)

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Project Clearwater - IMS in the Cloud
 # Copyright (C) 2015 Metaswitch Networks Ltd
 #
@@ -31,36 +33,33 @@
 # as those licenses appear in the file LICENSE-OPENSSL.
 
 
-# Cluster states
-EMPTY = "empty"
-STABLE = "stable"
-STABLE_WITH_ERRORS = "stable with errors"
-JOIN_PENDING = "join pending"
-STARTED_JOINING = "started joining"
-JOINING_CONFIG_CHANGING = "joining, config changing"
-JOINING_RESYNCING = "joining, resyncing"
-LEAVE_PENDING = "leave pending"
-STARTED_LEAVING = "started leaving"
-LEAVING_CONFIG_CHANGING = "leaving, config changing"
-LEAVING_RESYNCING = "leaving, resyncing"
-FINISHED_LEAVING = "finished leaving"
-INVALID_CLUSTER_STATE = "invalid cluster state"
+import unittest
+from metaswitch.clearwater.etcd_shared.test.mock_python_etcd import EtcdFactory
+from metaswitch.clearwater.config_manager.etcd_synchronizer import \
+    EtcdSynchronizer
+from .plugin import TestPlugin
+from mock import patch, MagicMock
+from threading import Thread
+from time import sleep
 
-# Node states
-WAITING_TO_JOIN = "waiting to join"
-JOINING = "joining"
-JOINING_ACKNOWLEDGED_CHANGE = "joining, acknowledged change"
-JOINING_CONFIG_CHANGED = "joining, config changed"
-NORMAL = "normal"
-NORMAL_ACKNOWLEDGED_CHANGE = "normal, acknowledged change"
-NORMAL_CONFIG_CHANGED = "normal, config changed"
-WAITING_TO_LEAVE = "waiting to leave"
-LEAVING = "leaving"
-LEAVING_ACKNOWLEDGED_CHANGE = "leaving, acknowledged change"
-LEAVING_CONFIG_CHANGED = "leaving, config changed"
-FINISHED = "finished"
-ERROR = "error"
+alarms_patch = patch("metaswitch.clearwater.config_manager.alarms.issue_alarm", new=MagicMock)
 
-# Pseudo-state - this state never gets written into etcd, we just delete the
-# node's entry from etcd when we hit this state
-DELETE_ME = "DELETE_ME"
+class BasicTest(unittest.TestCase):
+    @patch("etcd.Client", new=EtcdFactory)
+    def test_synchronisation(self):
+        p = TestPlugin()
+        e = EtcdSynchronizer(p, "10.0.0.1", "local", None)
+        thread = Thread(target=e.main)
+        thread.daemon=True
+        thread.start()
+
+        sleep(1)
+        # Write a new value into etcd, and check that the plugin is called with
+        # it
+        e._client.write("/clearwater/local/configuration/test", "hello world")
+        sleep(1)
+        p._on_config_changed.assert_called_with("hello world", None)
+
+        # Allow the EtcdSynchronizer to exit
+        e._terminate_flag = True
+        sleep(1)
