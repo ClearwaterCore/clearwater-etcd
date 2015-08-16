@@ -117,6 +117,12 @@ class EtcdTestBase(unittest.TestCase):
         del self.servers['127.0.0.102']
         sleep(0.2)
 
+    def do_1k_writes(self):
+        client = self.servers['127.0.0.100'].client()
+
+        for i in range(1001):
+            client.write("/foobar/", str(i))
+
     def config_mgr_test(self, before_fn, during_fn):
         # Check that a write is picked up
         self.initialise_servers('127.0.0.100', '127.0.0.101', '127.0.0.102')
@@ -191,5 +197,8 @@ class EtcdTestBase(unittest.TestCase):
     def test_seven(self):
         self.cluster_mgr_test(before_fn=None, during_fn=self.restart_quorum)
 
-    def test_six(self):
+    def test_eight(self):
         self.cluster_mgr_test(before_fn=None, during_fn=self.add_five_nodes)
+
+    def test_nine(self):
+        self.cluster_mgr_test(before_fn=None, during_fn=self.do_1k_writes)
