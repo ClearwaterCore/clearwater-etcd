@@ -41,10 +41,11 @@ _log = logging.getLogger("config_manager.etcd_synchronizer")
 
 
 class EtcdSynchronizer(CommonEtcdSynchronizer):
-    def __init__(self, plugin, ip, site, alarm, pause_before_retry=30):
+    def __init__(self, plugin, ip, site, alarm, key, pause_before_retry=30):
         CommonEtcdSynchronizer.__init__(self, plugin, ip, pause_before_retry=pause_before_retry)
         self._site = site
         self._alarm = alarm
+        self._key = key
 
     def main(self):
         # Continue looping while the service is running.
@@ -66,4 +67,4 @@ class EtcdSynchronizer(CommonEtcdSynchronizer):
                 FILE_CHANGED.log(filename=self._plugin.file())
 
     def key(self):
-        return "/clearwater/" + self._site + "/configuration/" + self._plugin.key()
+        return "/" + self._key + "/" + self._site + "/configuration/" + self._plugin.key()
