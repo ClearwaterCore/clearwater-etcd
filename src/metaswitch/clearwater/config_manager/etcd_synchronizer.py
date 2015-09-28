@@ -30,6 +30,7 @@
 # under which the OpenSSL Project distributes the OpenSSL toolkit software,
 # as those licenses appear in the file LICENSE-OPENSSL.
 
+import re
 import etcd
 from time import sleep
 from hashlib import md5
@@ -127,8 +128,7 @@ class EtcdSynchronizer(object):
         # Calculate the args for the wait
         args = dict(wait=True,
                     timeout=0,
-                    recursive=False,
-                    quorum=True)
+                    recursive=False)
         if waitIndex is not None:
             args['waitIndex'] = waitIndex
 
