@@ -271,6 +271,9 @@ do_start()
                 || return 2
 
         wait_for_etcd
+
+	# Start the auto-upload job
+	start auto-upload
 }
 
 do_rebuild()
