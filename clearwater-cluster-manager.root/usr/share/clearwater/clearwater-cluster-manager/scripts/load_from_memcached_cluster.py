@@ -34,6 +34,7 @@ import sys
 import etcd
 import json
 import os
+import re
 
 local_ip = sys.argv[1]
 local_site = sys.argv[2]
@@ -60,6 +61,8 @@ c = etcd.Client(local_ip, 4000)
 def load_file_into_etcd(filename, etcd_key):
     with open(filename) as f:
         for line in f.readlines():
+            if re.compile("^[ ]*#").match(line):
+                continue
             if '=' in line:
                 key, value = line.split("=")
                 assert key != "new_servers", \
