@@ -272,7 +272,7 @@ class EtcdSynchronizer(object):
                         result_future = self.executor.submit(self._client.read,
                                                              self._key,
                                                              wait=True,
-                                                             waitIndex=result.modifiedIndex+1,
+                                                             waitIndex=result.etcd_index+1,
                                                              timeout=0,
                                                              recursive=False)
                         futures.wait([result_future, self.terminate_future], return_when=futures.FIRST_COMPLETED)
