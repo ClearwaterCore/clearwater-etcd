@@ -44,11 +44,15 @@ if [ $sta -ne 0 ]; then
 fi
 
 if [ -d /var/lib/clearwater-etcd/${management_local_ip:-$local_ip} ]; then
-    # If we can talk to etcd, check to see if we can write a key value and exit
-    # with bad status, if we can't. This is done because there have been
+    # If we can talk to etcd, check to see if we can read local statistics
+    # and exit with bad status if we can't. This is done because there have been
     # occasions where etcd was listening to its port, but wasn't functioning
     # properly, so doing this check lets monit restart it.
-    curl -L http://${management_local_ip:-$local_ip}:4000/v2/keys/${management_local_ip:-$local_ip} -XPUT -d value="Hello world" 2>&1|grep -q '"value":"Hello world"'
+    #
+    # Note that we don't do a test write here, because this will hang/fail if
+    # the cluster is non-quorate (even though the etcd process itself might be
+    # functioning correctly).
+    curl -L http://${management_local_ip:-$local_ip}:4000/v2/stats/self 2>&1|grep -q '"name":"'${management_local_ip:-$local_ip}'"'
     exit $?
 fi
 
