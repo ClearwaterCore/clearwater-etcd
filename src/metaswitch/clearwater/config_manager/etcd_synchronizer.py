@@ -96,7 +96,7 @@ class EtcdSynchronizer(object):
             if result is None or result.modifiedIndex == self._index:
                 while not self._terminate_flag:
                     _log.info("Watching for changes")
-                    waitIndex = None if (self._index is None or result is None) else result.modifiedIndex + 1
+                    waitIndex = None if (self._index is None or result is None) else result.etcd_index + 1
                     result = self.waitHelper(full_key, waitIndex=waitIndex)
                     if result is not None:
                         break
