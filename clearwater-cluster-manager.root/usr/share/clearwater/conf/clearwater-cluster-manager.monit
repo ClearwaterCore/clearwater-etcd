@@ -1,13 +1,7 @@
 # Check the clearwater-cluster-manager process.
 
-check program etcd-cluman-configured with path "/bin/bash -c '. /etc/clearwater/config; if [ -z $etcd_cluster ]; then exit 1; fi; exit 0';echo $?"
-  group etcd
-  if status != 0 then unmonitor
-
 # Monitor the service's PID file and memory use.
 check process clearwater_cluster_manager with pidfile /var/run/clearwater-cluster-manager.pid
-  group etcd
-  depends on etcd-cluman-configured
 
   start program = "/bin/bash -c '/etc/init.d/clearwater-cluster-manager start'"
   stop program = "/bin/bash -c '/etc/init.d/clearwater-cluster-manager stop'"
