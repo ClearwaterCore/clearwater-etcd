@@ -35,7 +35,6 @@ from metaswitch.clearwater.etcd_shared.plugin_utils import run_command
 import logging
 import shutil
 import os
-import subprocess
 
 _log = logging.getLogger("shared_config_plugin")
 _file = "/etc/clearwater/shared_config"
@@ -57,11 +56,6 @@ class SharedConfigPlugin(ConfigPluginBase):
                 if current == value:
                     return FileStatus.UP_TO_DATE
                 else:
-                    with open("/tmp/value.tmp", "w") as ofile:
-                        ofile.write(value)
-                    print " + {} is present but is out of sync:".format(_file)
-                    print "     # diff -bw <etcd-conman-value> {}".format(_file)
-                    subprocess.call("diff -bw /tmp/value.tmp {}|sed -e 's#^#     #'".format(_file), shell=True);
                     return FileStatus.OUT_OF_SYNC
         except IOError:
             return FileStatus.MISSING
