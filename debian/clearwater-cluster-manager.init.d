@@ -111,7 +111,7 @@ do_start()
                --log-directory=$log_directory
                --pidfile=$PIDFILE"
 
-  start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --test > /dev/null \
+  start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $ACTUAL_EXEC --test > /dev/null \
     || return 1
 
   start-stop-daemon --start --quiet --chdir $DAEMON_DIR --pidfile $PIDFILE --exec $DAEMON -- \
@@ -171,7 +171,7 @@ do_abort()
         #   1 if daemon was already stopped
         #   2 if daemon could not be stopped
         #   other if a failure occurred
-        start-stop-daemon --stop --quiet --retry=USR1/5/TERM/30/KILL/5 --exec $DAEMON
+        start-stop-daemon --stop --quiet --retry=USR1/5/TERM/30/KILL/5 --exec $ACTUAL_EXEC --pidfile $PIDFILE
         RETVAL="$?"
         [ "$RETVAL" = 2 ] && return 2
         # Many daemons don't delete their pidfiles when they exit.
