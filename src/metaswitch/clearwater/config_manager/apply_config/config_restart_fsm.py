@@ -68,7 +68,6 @@ class SyncFSM(object):
         # Global state: NO_SYNC, SYNC, STOPPED_ERROR
         # Local state: WAITING, RESPONSE_TIMER, RESPONSE_TIMER_POPPED, PROCESSING,
         #              RESTART_TIMER, RESTART_TIMER_POPPED, SUCCESS
-        # Global flags: FORCE (bool)
 
         # Local state is determined from the 
         # WAITING - Clear global alarm (nothing in the queue)
@@ -81,7 +80,8 @@ class SyncFSM(object):
         #
         # We work out what the updated apply_config should be given the local state of the node and return it
      
-        # Get the new local/global state
+        # Get the new local/global state. We can detect the differences between TIMER/POPPED based on the state
+        # of the timers.
         current_local_state, current_global_state, current_node_id, force = parse_current_json(apply_config)
 
         # We use the global state to raise/clear global alarms
@@ -131,7 +131,7 @@ class SyncFSM(object):
                 return apply_config
             elif new_local_state == constants.RESTART_TIMER_POPPED:
                 self._local_alarm.critical()
-                self._restart_timer.set()
+                self._restart_timer.clear()
                 # Set the new apply config - exact JSON depends on the value of force
                 return apply_config
             elif new_local_state == constants.RESPONSE_TIMER:
