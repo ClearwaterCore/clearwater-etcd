@@ -72,11 +72,12 @@ class SharedConfigPlugin(ConfigPluginBase):
         _log.info("Restarting services")
         run_command("service clearwater-infrastructure restart")
 
-        for restart_script in os.listdir("/usr/share/clearwater/infrastructure/scripts/restart"):
-            run_command("/usr/share/clearwater/infrastructure/scripts/restart/" + restart_script)
+        if os.path.isdir("/usr/share/clearwater/infrastructure/scripts/restart"):
+            for restart_script in os.listdir("/usr/share/clearwater/infrastructure/scripts/restart"):
+                run_command("/usr/share/clearwater/infrastructure/scripts/restart/" + restart_script)
 
-        # Wait to let restarts finish
-        sleep(20)
+            # Wait to let restarts finish
+            sleep(20)
 
         # Config file is now up-to-date
         alarm.update_file(_file)
