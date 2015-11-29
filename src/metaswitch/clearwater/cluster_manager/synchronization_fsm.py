@@ -73,7 +73,7 @@ class SyncFSM(object):
     # The number of seconds to wait in WAITING_TO_JOIN/WAITING_TO_LEAVE state
     # before switching into JOINING/LEAVING state. Defined as a class constant
     # for easy overriding in UT.
-    DELAY = 30
+    DELAY = 5
 
     def __init__(self, plugin, local_ip):
         self._plugin = plugin
