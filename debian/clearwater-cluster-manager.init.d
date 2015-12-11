@@ -98,6 +98,7 @@ do_start()
   # Make sure to pull in the node_type files before local_config
   local_site_name=site1
   remote_site_name=""
+  remote_cassandra_seeds=""
   signaling_namespace=""
   etcd_key=clearwater
   etcd_cluster_key=""
@@ -114,6 +115,7 @@ do_start()
                --sig-local-ip=$local_ip
                --local-site=$local_site_name
                --remote-site=$remote_site_name
+               --remote-cassandra-seeds=$remote_cassandra_seeds
                --signaling-namespace=$signaling_namespace
                --etcd-key=$etcd_key
                --etcd-cluster-key=$etcd_cluster_key
