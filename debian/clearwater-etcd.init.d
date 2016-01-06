@@ -85,15 +85,12 @@ create_cluster()
         # Build the initial cluster view string based on the IP addresses in
         # $etcd_cluster.  Each entry looks like <name>=<peer url>.
         ETCD_INITIAL_CLUSTER=
-        OLD_IFS=$IFS
-        IFS=,
-        for server in $etcd_cluster
+        for server in ${etcd_cluster//,/ }
         do
             server_name=${server%:*}
             server_name=${server_name//./-}
             ETCD_INITIAL_CLUSTER="${server_name}=http://$server:2380,$ETCD_INITIAL_CLUSTER"
         done
-        IFS=$OLD_IFS
 
         CLUSTER_ARGS="--initial-cluster $ETCD_INITIAL_CLUSTER
                       --initial-cluster-state new"
@@ -132,13 +129,10 @@ join_cluster()
         # Build the client list based on $etcd_cluster, each entry is simply
         # <IP>:<port> using the client port.
         export ETCDCTL_PEERS=
-        OLD_IFS=$IFS
-        IFS=,
-        for server in $etcd_cluster
+        for server in ${etcd_cluster//,/ }
         do
             ETCDCTL_PEERS="$server:4000,$ETCDCTL_PEERS"
         done
-        IFS=$OLD_IFS
 
         # Check to make sure the cluster we want to join is healthy.
         # If it's not, don't even try joining (it won't work, and may
