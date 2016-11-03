@@ -54,6 +54,7 @@
 DESC="etcd"
 NAME=clearwater-etcd
 DATA_DIR=/var/lib/$NAME
+JOINED_CLUSTER_SUCCESSFULLY=$DATA_DIR/clustered_successfully
 PIDFILE=/var/run/$NAME/$NAME.pid
 DAEMON=/usr/bin/etcd
 DAEMONWRAPPER=/usr/bin/etcdwrapper
@@ -77,25 +78,51 @@ DAEMONWRAPPER=/usr/bin/etcdwrapper
 listen_ip=${management_local_ip:-$local_ip}
 advertisement_ip=${management_local_ip:-$local_ip}
 
-create_cluster()
+generate_initial_cluster()
 {
-        # Creating a new cluster
-        echo Creating new cluster...
-
-        # Build the initial cluster view string based on the IP addresses in
-        # $etcd_cluster. Each entry looks like <name>=<peer url>. Replace
-        # commas with whitespace, then split on whitespace (to cope with
-        # etcd_cluster values that have spaces)
+        # We are provided with a comma or space separated list of IP
+        # addresses. We need to produce a list of comma separated
+        # entries, where each entry should look like <name>=<peer url>.
+        # Replace commas with whitespace, then split on whitespace (to
+        # cope with etcd_cluster values that have spaces)
+        # We generate names by just replacing dots with dashes.
         ETCD_INITIAL_CLUSTER=
-        for server in ${etcd_cluster//,/ }
+        for server in ${1//,/ }
         do
             server_name=${server%:*}
             server_name=${server_name//./-}
             ETCD_INITIAL_CLUSTER="${server_name}=http://$server:2380,$ETCD_INITIAL_CLUSTER"
         done
+}
+
+create_cluster()
+{
+        echo Creating new cluster...
+
+        # Build the initial cluster view string based on the IP addresses in
+        # $etcd_cluster.
+        generate_initial_cluster $etcd_cluster
 
         CLUSTER_ARGS="--initial-cluster $ETCD_INITIAL_CLUSTER
                       --initial-cluster-state new"
+}
+
+join_cluster_as_proxy()
+{
+        echo Joining cluster as proxy...
+
+        # We can either be supplied with a complete proxy setup string
+        # in $etcd_proxy, or a list of IP addresses, like etcd_cluster
+        # Disambiguate the two based on if it has an "=" sign it.
+        if [[ $etcd_proxy == *"="* ]]; then
+            ETCD_INITIAL_CLUSTER="${etcd_proxy}"
+        else
+            # Build the initial cluster view string based on the IP addresses in
+            # $etcd_proxy.
+            generate_initial_cluster $etcd_proxy
+        fi
+
+        CLUSTER_ARGS="--initial-cluster $ETCD_INITIAL_CLUSTER --proxy on"
 }
 
 setup_etcdctl_peers()
@@ -127,15 +154,7 @@ join_cluster()
         # We need a temp file to deal with the environment variables.
         TEMP_FILE=$(mktemp)
 
-        # Build the client list based on $etcd_cluster, each entry is simply
-        # <IP>:<port> using the client port. Replace commas with whitespace,
-        # then split on whitespace (to cope with etcd_cluster values that have
-        # spaces)
-        export ETCDCTL_PEERS=
-        for server in ${etcd_cluster//,/ }
-        do
-            ETCDCTL_PEERS="$server:4000,$ETCDCTL_PEERS"
-        done
+        setup_etcdctl_peers
 
         # Check to make sure the cluster we want to join is healthy.
         # If it's not, don't even try joining (it won't work, and may
@@ -151,9 +170,12 @@ join_cluster()
         /usr/bin/etcdctl member add $ETCD_NAME http://$advertisement_ip:2380
         if [[ $? != 0 ]]
         then
+          local_member_id=$(/usr/bin/etcdctl member list | grep -F -w "http://$advertisement_ip:2380" | grep -o -E "^[^:]*" | grep -o "^[^[]\+")
+          /usr/bin/etcdctl member remove $local_member_id
           echo "Failed to add local node to cluster"
           exit 2
         fi
+
         ETCD_INITIAL_CLUSTER=$(/usr/share/clearwater/bin/get_etcd_initial_cluster.py $advertisement_ip $etcd_cluster)
 
         CLUSTER_ARGS="--initial-cluster $ETCD_INITIAL_CLUSTER
@@ -176,7 +198,8 @@ join_cluster()
 #
 join_or_create_cluster()
 {
-        if [[ $etcd_cluster =~ (^|,)$advertisement_ip(,|$) ]]
+        if [[ $etcd_cluster =~ (^|,)$advertisement_ip(,|$) ]] &&
+           [[ ! -f $JOINED_CLUSTER_SUCCESSFULLY ]]
         then
           create_cluster
         else
@@ -190,6 +213,7 @@ wait_for_etcd()
         start_time=$(date +%s)
         while true; do
           if nc -z $listen_ip 4000; then
+            touch $JOINED_CLUSTER_SUCCESSFULLY
             break;
           else
             current_time=$(date +%s)
@@ -201,6 +225,48 @@ wait_for_etcd()
             sleep 1
           fi
         done
+}
+
+verify_etcd_health()
+{
+        # If we're already in the member list but are 'unstarted', remove our data dir, which
+        # contains stale data from a previous unsuccessful startup attempt. This copes with a race
+        # condition where member add succeeds but etcd doesn't then come up.
+        #
+        # The output of member list looks like:
+        # <id>[unstarted]: name=xx-xx-xx-xx peerURLs=http://xx.xx.xx.xx:2380 clientURLs=http://xx.xx.xx.xx:4000
+        # The [unstarted] is only present while the member hasn't fully joined the etcd cluster
+        setup_etcdctl_peers
+        member_list=$(/usr/bin/etcdctl member list)
+        local_member_id=$(echo "$member_list" | grep -F -w "http://$local_ip:2380" | grep -o -E "^[^:]*" | grep -o "^[^[]\+")
+        unstarted_member_id=$(echo "$member_list" | grep -F -w "http://$local_ip:2380" | grep "unstarted")
+        if [[ $unstarted_member_id != '' ]]
+        then
+          /usr/bin/etcdctl member remove $local_member_id
+          if [[ $? == 0 ]]
+          then
+            rm -rf $DATA_DIR/$advertisement_ip
+          fi
+        fi
+
+        if [[ -e $DATA_DIR/$advertisement_ip ]]
+        then
+          # Check we can read our write-ahead log and snapshot files. If not, our
+          # data directory is irrecoverably corrupt (perhaps because we ran out
+          # of disk space and the files were half-written), so we should clean it
+          # out and rejoin the cluster from scratch.
+          timeout 5 /usr/bin/etcd-dump-logs --data-dir $DATA_DIR/$advertisement_ip > /dev/null 2>&1
+          rc=$?
+
+          if [[ $rc != 0 ]]
+          then
+            /usr/bin/etcdctl member remove $local_member_id
+            if [[ $? == 0 ]]
+            then
+              rm -rf $DATA_DIR/$advertisement_ip
+            fi
+          fi
+        fi
 }
 
 #
@@ -218,21 +284,7 @@ do_start()
         ETCD_NAME=${advertisement_ip//./-}
         CLUSTER_ARGS=
 
-        # If we're already in the member list but are 'unstarted', remove our data dir, which
-        # contains stale data from a previous unsuccessful startup attempt. This copes with a race
-        # condition where member add succeeds but etcd doesn't then come up.
-        #
-        # The output of member list looks like:
-        # <id>[unstarted]: name=xx-xx-xx-xx peerURLs=http://xx.xx.xx.xx:2380 clientURLs=http://xx.xx.xx.xx:4000
-        # The [unstarted] is only present while the member hasn't fully joined the etcd cluster
-        setup_etcdctl_peers
-        member=$(/usr/bin/etcdctl member list | grep "unstarted" | grep -F -w $listen_ip )
-        if [[ $member != '' ]]
-        then
-          member_id=$(echo $member | grep -o "^[^[]\+")
-          /usr/bin/etcdctl member remove $member_id
-          rm -rf $DATA_DIR/$advertisement_ip
-        fi
+        verify_etcd_health
 
         if [ -n "$etcd_cluster" ] && [ -n "$etcd_proxy" ]
         then
@@ -259,7 +311,7 @@ do_start()
         then
           # Run etcd as a proxy talking to the cluster.
 
-          CLUSTER_ARGS="--initial-cluster $etcd_proxy --proxy on"
+          join_cluster_as_proxy
         else
           echo "Must specify either etcd_cluster or etcd_proxy"
           return 2
@@ -269,7 +321,7 @@ do_start()
         install -m 755 -o $NAME -g root -d /var/run/$NAME && chown -R $NAME /var/run/$NAME
 
         # Common arguments
-        DAEMON_ARGS="--listen-client-urls http://$listen_ip:4000
+        DAEMON_ARGS="--listen-client-urls http://0.0.0.0:4000
                      --advertise-client-urls http://$advertisement_ip:4000
                      --data-dir $DATA_DIR/$advertisement_ip
                      --name $ETCD_NAME
@@ -283,6 +335,8 @@ do_start()
 
 do_rebuild()
 {
+        rm -f $JOINED_CLUSTER_SUCCESSFULLY
+
         # Return
         #   0 if daemon has been started
         #   1 if daemon was already running
@@ -294,7 +348,7 @@ do_rebuild()
         create_cluster
 
         # Standard ports
-        DAEMON_ARGS="--listen-client-urls http://$listen_ip:4000
+        DAEMON_ARGS="--listen-client-urls http://0.0.0.0:4000
                      --advertise-client-urls http://$advertisement_ip:4000
                      --listen-peer-urls http://$listen_ip:2380
                      --initial-advertise-peer-urls http://$advertisement_ip:2380

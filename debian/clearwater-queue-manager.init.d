@@ -86,16 +86,22 @@ do_start()
   local_site_name=site1
   etcd_key=clearwater
   etcd_cluster_key=unknown
+  log_level=3
+  log_directory=/var/log/clearwater-queue-manager
+  wait_plugin_complete=Y
   if [ -d /usr/share/clearwater/node_type.d ]
   then
     . /usr/share/clearwater/node_type.d/$(ls /usr/share/clearwater/node_type.d | head -n 1)
   fi
   . /etc/clearwater/config
-  log_level=3
-  log_directory=/var/log/clearwater-queue-manager
-  [ -r /etc/clearwater/user_settings ] && . /etc/clearwater/user_settings
 
-  DAEMON_ARGS="--local-ip=${management_local_ip:-$local_ip} --local-site=$local_site_name --log-level=$log_level --log-directory=$log_directory --pidfile=$PIDFILE --etcd-key=$etcd_key --node-type=$etcd_cluster_key"
+  if [ -z "$local_ip" ]
+  then
+    echo "/etc/clearwater/local_config not provided, not starting"
+    return 3
+  fi
+
+  DAEMON_ARGS="--local-ip=${management_local_ip:-$local_ip} --local-site=$local_site_name --log-level=$log_level --log-directory=$log_directory --pidfile=$PIDFILE --etcd-key=$etcd_key --node-type=$etcd_cluster_key --wait-plugin-complete=$wait_plugin_complete"
 
   # Check if the process is already running - we use ACTUAL_EXEC here, as that's what will be in the
   # process tree (not DAEMON).
