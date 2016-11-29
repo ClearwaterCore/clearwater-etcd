@@ -172,6 +172,7 @@ join_cluster()
         then
           local_member_id=$(/usr/bin/etcdctl member list | grep -F -w "http://$advertisement_ip:2380" | grep -o -E "^[^:]*" | grep -o "^[^[]\+")
           /usr/bin/etcdctl member remove $local_member_id
+          rm -rf $DATA_DIR/$advertisement_ip
           echo "Failed to add local node to cluster"
           exit 2
         fi
@@ -198,8 +199,8 @@ join_cluster()
 #
 join_or_create_cluster()
 {
-        if [[ $etcd_cluster =~ (^|,)$advertisement_ip(,|$) ]] &&
-           [[ ! -f $JOINED_CLUSTER_SUCCESSFULLY ]]
+        if [[ $etcd_cluster == $advertisement_ip ]] ||
+           [[ $etcd_cluster =~ (^|,)$advertisement_ip(,|$) && ! -f $JOINED_CLUSTER_SUCCESSFULLY ]]
         then
           create_cluster
         else
@@ -207,9 +208,24 @@ join_or_create_cluster()
         fi
 }
 
-wait_for_etcd()
+verify_etcd_health_after_startup()
 {
-        # Wait for etcd to come up.
+        # We could be in a bad state at this point - parse the etcd logs for
+        # known error conditions. We do this from the logs as they're the most
+        # reliable way of detecting that something is wrong.
+
+        # We could have a data directory already, but not actually be a member of
+        # the etcd cluster. Remove the data directory.
+        tail -10 /var/log/clearwater-etcd/clearwater-etcd.log | grep -q "etcdserver: the member has been permanently removed from the cluster"
+        if [[ $? == 0 ]]
+        then
+          echo "Etcd is in an inconsistent state - removing the data directory"
+          rm -rf $DATA_DIR/$advertisement_ip
+          exit 3
+        fi
+
+        # Wait for etcd to come up. Note - all this tests is that clearwater-etcd
+        # is listening on 4000 - it doesn't confirm that etcd is running fully
         start_time=$(date +%s)
         while true; do
           if nc -z $listen_ip 4000; then
@@ -227,7 +243,7 @@ wait_for_etcd()
         done
 }
 
-verify_etcd_health()
+verify_etcd_health_before_startup()
 {
         # If we're already in the member list but are 'unstarted', remove our data dir, which
         # contains stale data from a previous unsuccessful startup attempt. This copes with a race
@@ -243,10 +259,7 @@ verify_etcd_health()
         if [[ $unstarted_member_id != '' ]]
         then
           /usr/bin/etcdctl member remove $local_member_id
-          if [[ $? == 0 ]]
-          then
-            rm -rf $DATA_DIR/$advertisement_ip
-          fi
+          rm -rf $DATA_DIR/$advertisement_ip
         fi
 
         if [[ -e $DATA_DIR/$advertisement_ip ]]
@@ -261,10 +274,7 @@ verify_etcd_health()
           if [[ $rc != 0 ]]
           then
             /usr/bin/etcdctl member remove $local_member_id
-            if [[ $? == 0 ]]
-            then
-              rm -rf $DATA_DIR/$advertisement_ip
-            fi
+            rm -rf $DATA_DIR/$advertisement_ip
           fi
         fi
 }
@@ -284,7 +294,7 @@ do_start()
         ETCD_NAME=${advertisement_ip//./-}
         CLUSTER_ARGS=
 
-        verify_etcd_health
+        verify_etcd_health_before_startup
 
         if [ -n "$etcd_cluster" ] && [ -n "$etcd_proxy" ]
         then
@@ -330,7 +340,7 @@ do_start()
         start-stop-daemon --start --quiet --background --pidfile $PIDFILE --startas $DAEMONWRAPPER --chuid $NAME -- $DAEMON_ARGS $CLUSTER_ARGS \
                 || return 2
 
-        wait_for_etcd
+        verify_etcd_health_after_startup
 }
 
 do_rebuild()
@@ -359,7 +369,7 @@ do_rebuild()
         start-stop-daemon --start --quiet --background --pidfile $PIDFILE --startas $DAEMONWRAPPER --chuid $NAME -- $DAEMON_ARGS $CLUSTER_ARGS \
                 || return 2
 
-        wait_for_etcd
+        verify_etcd_health_after_startup
 }
 
 
