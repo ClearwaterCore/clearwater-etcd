@@ -98,13 +98,14 @@ do_start()
   # Make sure to pull in the node_type files before local_config
   local_site_name=site1
   remote_site_name=""
-  remote_cassandra_seeds="" # Not currently used
+  remote_cassandra_seeds=""
   signaling_namespace=""
   etcd_key=clearwater
   etcd_cluster_key=""
   log_level=3
   log_directory=/var/log/clearwater-cluster-manager
-  
+  cluster_manager_enabled="Y"
+
   # This sets up $uuid - it's created by /usr/share/clearwater/infrastructure/scripts/node_identity
   . /etc/clearwater/node_identity
 
@@ -124,11 +125,12 @@ do_start()
                --sig-local-ip=$local_ip
                --local-site=$local_site_name
                --remote-site=$remote_site_name
-               --remote-cassandra-seeds=""
+               --remote-cassandra-seeds=$remote_cassandra_seeds
                --signaling-namespace=$signaling_namespace
                --uuid=$uuid
                --etcd-key=$etcd_key
                --etcd-cluster-key=$etcd_cluster_key
+               --cluster-manager-enabled=$cluster_manager_enabled
                --log-level=$log_level
                --log-directory=$log_directory
                --pidfile=$PIDFILE"
@@ -190,8 +192,27 @@ do_abort()
         #   other if a failure occurred
         start-stop-daemon --stop --quiet --retry=USR1/5/TERM/30/KILL/5 --exec $ACTUAL_EXEC --pidfile $PIDFILE
         RETVAL="$?"
+        # If the abort failed, it may be because the PID in PIDFILE doesn't match the right process
+        # In this window condition, we may not recover, so remove the PIDFILE to get it running
+        if [ $RETVAL != 0 ]; then
+          rm -f $PIDFILE
+        fi
         return "$RETVAL"
 }
+
+# There should only be at most one cluster-manager process, and it should be the one in /var/run/clearwater-cluster-manager.pid.
+# Sanity check this, and kill and log any leaked ones.
+if [ -f $PIDFILE ] ; then
+  leaked_pids=$(pgrep -f "^$DAEMON" | grep -v $(cat $PIDFILE))
+else
+  leaked_pids=$(pgrep -f "^$DAEMON")
+fi
+if [ -n "$leaked_pids" ] ; then
+  for pid in $leaked_pids ; do
+    logger -p daemon.error -t $NAME Found leaked cluster-manager $pid \(correct is $(cat $PIDFILE)\) - killing $pid
+    kill -9 $pid
+  done
+fi
 
 case "$1" in
   start)

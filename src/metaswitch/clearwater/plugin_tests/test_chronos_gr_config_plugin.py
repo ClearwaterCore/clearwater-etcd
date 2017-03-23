@@ -1,5 +1,7 @@
+# @file test_chronos_gr_config_plugin.py
+#
 # Project Clearwater - IMS in the Cloud
-# Copyright (C) 2015  Metaswitch Networks Ltd
+# Copyright (C) 2016 Metaswitch Networks Ltd
 #
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -30,43 +32,33 @@
 # under which the OpenSSL Project distributes the OpenSSL toolkit software,
 # as those licenses appear in the file LICENSE-OPENSSL.
 
-from metaswitch.clearwater.config_manager.plugin_base import ConfigPluginBase, FileStatus
-from metaswitch.clearwater.etcd_shared.plugin_utils import run_command, safely_write
-from time import sleep
+import unittest
+import mock
 import logging
-import shutil
-import os
 
-_log = logging.getLogger("shared_config_plugin")
-_file = "/etc/clearwater/shared_config"
+_log = logging.getLogger()
 
-class SharedConfigPlugin(ConfigPluginBase):
-    def __init__(self, _params):
-        pass
+from clearwater_etcd_plugins.chronos.chronos_gr_config_plugin import ChronosGRConfigPlugin
 
-    def key(self):
-        return "shared_config"
+class TestConfigManagerPlugin(unittest.TestCase):
+    @mock.patch('clearwater_etcd_plugins.chronos.chronos_gr_config_plugin.safely_write')
+    @mock.patch('clearwater_etcd_plugins.chronos.chronos_gr_config_plugin.run_command')
+    def test_chronos_gr_config_changed(self, mock_run_command, mock_safely_write):
+        """Test Chronos GR Config plugin writes new config when config has changed"""
 
-    def file(self):
-        return _file
+        # Create the plugin
+        plugin = ChronosGRConfigPlugin({})
 
-    def status(self, value):
-        try:
-            with open(_file, "r") as ifile:
-                current = ifile.read()
-                if current == value:
-                    return FileStatus.UP_TO_DATE
-                else:
-                    return FileStatus.OUT_OF_SYNC
-        except IOError:
-            return FileStatus.MISSING
+        # Set up the config strings to be tested
+        old_config_string = "Old Chronos GR config"
+        new_config_string = "New Chronos GR config"
 
-    def on_config_changed(self, value, alarm):
-        _log.info("Updating shared configuration file")
+        # Call 'on_config_changed' with file.open mocked out
+        with mock.patch('clearwater_etcd_plugins.chronos.chronos_gr_config_plugin.open', \
+             mock.mock_open(read_data=old_config_string), create=True) as mock_open:
+            plugin.on_config_changed(new_config_string, None)
 
-        if self.status(value) != FileStatus.UP_TO_DATE:
-            safely_write(_file, value)
-            run_command("/usr/share/clearwater/clearwater-queue-manager/scripts/modify_nodes_in_queue add apply_config")
-
-def load_as_plugin(params):
-    return SharedConfigPlugin(params)
+        # Test assertions
+        mock_open.assert_called_once_with(plugin.file(), "r")
+        mock_safely_write.assert_called_once_with(plugin.file(), new_config_string)
+        mock_run_command.assert_called_once_with("/usr/share/clearwater/clearwater-queue-manager/scripts/modify_nodes_in_queue add apply_chronos_gr_config")

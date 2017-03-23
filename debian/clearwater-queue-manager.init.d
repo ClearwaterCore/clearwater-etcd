@@ -88,6 +88,7 @@ do_start()
   etcd_cluster_key=unknown
   log_level=3
   log_directory=/var/log/clearwater-queue-manager
+  wait_plugin_complete=Y
   if [ -d /usr/share/clearwater/node_type.d ]
   then
     . /usr/share/clearwater/node_type.d/$(ls /usr/share/clearwater/node_type.d | head -n 1)
@@ -100,7 +101,7 @@ do_start()
     return 3
   fi
 
-  DAEMON_ARGS="--local-ip=${management_local_ip:-$local_ip} --local-site=$local_site_name --log-level=$log_level --log-directory=$log_directory --pidfile=$PIDFILE --etcd-key=$etcd_key --node-type=$etcd_cluster_key"
+  DAEMON_ARGS="--local-ip=${management_local_ip:-$local_ip} --local-site=$local_site_name --log-level=$log_level --log-directory=$log_directory --pidfile=$PIDFILE --etcd-key=$etcd_key --node-type=$etcd_cluster_key --wait-plugin-complete=$wait_plugin_complete"
 
   # Check if the process is already running - we use ACTUAL_EXEC here, as that's what will be in the
   # process tree (not DAEMON).
@@ -143,8 +144,27 @@ do_abort()
         #   other if a failure occurred
         start-stop-daemon --stop --quiet --retry=USR1/5/TERM/30/KILL/5 --exec $ACTUAL_EXEC --pidfile $PIDFILE
         RETVAL="$?"
+        # If the abort failed, it may be because the PID in PIDFILE doesn't match the right process
+        # In this window condition, we may not recover, so remove the PIDFILE to get it running
+        if [ $RETVAL != 0 ]; then
+          rm -f $PIDFILE
+        fi
         return "$RETVAL"
 }
+
+# There should only be at most one queue-manager process, and it should be the one in /var/run/clearwater-queue-manager.pid.
+# Sanity check this, and kill and log any leaked ones.
+if [ -f $PIDFILE ] ; then
+  leaked_pids=$(pgrep -f "^$DAEMON" | grep -v $(cat $PIDFILE))
+else
+  leaked_pids=$(pgrep -f "^$DAEMON")
+fi
+if [ -n "$leaked_pids" ] ; then
+  for pid in $leaked_pids ; do
+    logger -p daemon.error -t $NAME Found leaked queue-manager $pid \(correct is $(cat $PIDFILE)\) - killing $pid
+    kill -9 $pid
+  done
+fi
 
 case "$1" in
   start)
