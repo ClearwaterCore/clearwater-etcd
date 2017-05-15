@@ -61,6 +61,7 @@ from metaswitch.clearwater.config_manager.alarms \
     import ConfigAlarm
 from metaswitch.clearwater.config_manager import pdlogs
 import syslog
+from time import sleep
 import logging
 import os
 import prctl
@@ -121,6 +122,7 @@ def main(args):
     plugins_dir = "/usr/share/clearwater/clearwater-config-manager/plugins/"
     plugins = load_plugins_in_dir(plugins_dir)
     plugins.sort(key=lambda x: x.key())
+    synchronizers = []
     threads = []
 
     files = [p.file() for p in plugins]
@@ -130,13 +132,19 @@ def main(args):
         syncer = EtcdSynchronizer(plugin, local_ip, local_site, alarm, etcd_key)
         syncer.start_thread()
 
+        synchronizers.append(syncer)
         threads.append(syncer.thread)
         _log.info("Loaded plugin %s" % plugin)
+
+    utils.install_sigterm_handler(synchronizers)
 
     while any([thr.isAlive() for thr in threads]):
         for thr in threads:
             if thr.isAlive():
                 thr.join(1)
+
+    while not utils.should_quit:
+        sleep(1)
 
     _log.info("Clearwater Configuration Manager shutting down")
     pdlogs.EXITING.log()

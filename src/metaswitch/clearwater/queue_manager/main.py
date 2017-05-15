@@ -62,6 +62,7 @@ from metaswitch.clearwater.queue_manager.etcd_synchronizer \
     import EtcdSynchronizer
 from metaswitch.clearwater.queue_manager import pdlogs
 import syslog
+from time import sleep
 import logging
 import os
 import prctl
@@ -125,19 +126,26 @@ def main(args):
     plugins = load_plugins_in_dir(plugins_dir,
                                   PluginParams(wait_plugin_complete=wait_plugin_complete))
     plugins.sort(key=lambda x: x.key())
+    synchronizers = []
     threads = []
 
     for plugin in plugins:
         syncer = EtcdSynchronizer(plugin, local_ip, local_site, etcd_key, node_type)
         syncer.start_thread()
 
+        synchronizers.append(syncer)
         threads.append(syncer.thread)
         _log.info("Loaded plugin %s" % plugin)
+
+    utils.install_sigterm_handler(synchronizers)
 
     while any([thr.isAlive() for thr in threads]):
         for thr in threads:
             if thr.isAlive():
                 thr.join(1)
+
+    while not utils.should_quit:
+        sleep(1)
 
     _log.info("Clearwater Queue Manager shutting down")
     pdlogs.EXITING.log()
