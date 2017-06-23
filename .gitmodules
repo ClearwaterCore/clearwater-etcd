@@ -1,9 +1,9 @@
 [submodule "build-infra"]
 	path = build-infra
-	url = git@github.com:ClearwaterCore/clearwater-build-infra.git
+	url = git@git.datcon.co.uk:/clearwater-core/clearwater-build-infra.git
 [submodule "common"]
 	path = common
-	url = git@github.com:ClearwaterCore/python-common.git
+	url = git@git.datcon.co.uk:/clearwater-core/python-common.git
 [submodule "src/clearwater_etcd_plugins"]
 	path = src/clearwater_etcd_plugins
-	url = git@github.com:ClearwaterCore/clearwater-etcd-plugins.git
+	url = git@git.datcon.co.uk:/clearwater-core/clearwater-etcd-plugins.git
