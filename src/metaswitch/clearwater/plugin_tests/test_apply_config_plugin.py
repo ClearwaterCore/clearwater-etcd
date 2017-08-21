@@ -25,7 +25,8 @@ def run_command_all_succeed(command):
     return 0
 
 def run_command_check_node_health_fails(command):
-    if (command == "/usr/share/clearwater/clearwater-queue-manager/scripts/check_node_health.py"):
+    if (command == \
+            ["/usr/share/clearwater/clearwater-queue-manager/scripts/check_node_health.py"]):
         return 1
     else:
         return 0
@@ -50,11 +51,11 @@ class TestApplyConfigPlugin(unittest.TestCase):
         mock_os_listdir.return_value = ["test_restart_script"]
 
         expected_command_call_list = \
-            [mock.call("service clearwater-infrastructure restart"),
-             mock.call("/usr/share/clearwater/infrastructure/scripts/restart/test_restart_script"),
-             mock.call("/usr/share/clearwater/clearwater-queue-manager/scripts/check_node_health.py"),
-             mock.call("/usr/share/clearwater/clearwater-queue-manager/scripts/modify_nodes_in_queue"\
-                       " remove_success apply_config_key")]
+            [mock.call(['service', 'clearwater-infrastructure', 'restart']),
+             mock.call(['/usr/share/clearwater/infrastructure/scripts/restart/test_restart_script']),
+             mock.call(['/usr/share/clearwater/clearwater-queue-manager/scripts/check_node_health.py']),
+             mock.call(['/usr/share/clearwater/clearwater-queue-manager/scripts/modify_nodes_in_queue', \
+                       'remove_success', 'apply_config_key'])]
 
         # Call the plugin hook
         plugin.at_front_of_queue()
@@ -86,11 +87,11 @@ class TestApplyConfigPlugin(unittest.TestCase):
         mock_os_listdir.return_value = ["test_restart_script"]
 
         expected_command_call_list = \
-            [mock.call("service clearwater-infrastructure restart"),
-             mock.call("/usr/share/clearwater/infrastructure/scripts/restart/test_restart_script"),
-             mock.call("/usr/share/clearwater/clearwater-queue-manager/scripts/check_node_health.py"),
-             mock.call("/usr/share/clearwater/clearwater-queue-manager/scripts/modify_nodes_in_queue"\
-                       " remove_failure apply_config_key")]
+            [mock.call(['service', 'clearwater-infrastructure', 'restart']),
+             mock.call(['/usr/share/clearwater/infrastructure/scripts/restart/test_restart_script']),
+             mock.call(['/usr/share/clearwater/clearwater-queue-manager/scripts/check_node_health.py']),
+             mock.call(['/usr/share/clearwater/clearwater-queue-manager/scripts/modify_nodes_in_queue', \
+                       'remove_failure', u'apply_config_key'])]
 
         # Call the plugin hook
         plugin.at_front_of_queue()
@@ -122,10 +123,10 @@ class TestApplyConfigPlugin(unittest.TestCase):
         mock_os_listdir.return_value = ["test_restart_script"]
 
         expected_command_call_list = \
-            [mock.call("service clearwater-infrastructure restart"),
-             mock.call("/usr/share/clearwater/infrastructure/scripts/restart/test_restart_script"),
-             mock.call("/usr/share/clearwater/clearwater-queue-manager/scripts/modify_nodes_in_queue"\
-                       " remove_success apply_config_key")]
+            [mock.call(['service', 'clearwater-infrastructure', 'restart']),
+             mock.call(['/usr/share/clearwater/infrastructure/scripts/restart/test_restart_script']),
+             mock.call(['/usr/share/clearwater/clearwater-queue-manager/scripts/modify_nodes_in_queue', \
+                       'remove_success', 'apply_config_key'])]
 
         # Call the plugin hook
         plugin.at_front_of_queue()
