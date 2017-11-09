@@ -1,4 +1,3 @@
-
 /usr/share/clearwater/clearwater-config-manager/scripts/cw-config /usr/bin/cw-config
 
 /usr/share/clearwater/clearwater-config-manager/scripts/run_check_config_sync /usr/bin/cw-check_config_sync
