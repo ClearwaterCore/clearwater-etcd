@@ -31,6 +31,23 @@ if [ $rc != 0 ] ; then
   exit 2
 fi
 
+fileexist=0
+while read -r full_key; do
+  key=${full_key/stop_key/}
+  if [["$key" != apply_* ]]; then
+    backup_file=${backup_directory}/$key
+    if [ -a $backup_file ]; then
+      echo "$backup_file already exists"
+      fileexist=1
+    fi
+  fi
+done < /tmp/backup_config.$$.stdout
+
+if [ $fileexist != 0 ]; then
+  echo "Some of the files (see list above) to be downloaded already exist in $backup_directory please delete them manually and rerun this command if this is the right directory to backup to"
+  exit 4
+fi
+
 while read -r full_key; do
   key=${full_key/$top_key/}
   if [[ "$key" != apply_* ]]; then
