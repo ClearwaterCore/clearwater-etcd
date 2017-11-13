@@ -6,7 +6,7 @@
 # the license outlined in that COPYING file applies to your use.
 # Otherwise no rights are granted except for those provided to you by
 # Metaswitch Networks in a separate written agreement.
-if [ -z $1 ]
+if [ -z "$1" ]
 then
   echo "You must provide a location to backup the configuration to"
   echo
@@ -33,10 +33,10 @@ fi
 
 fileexist=0
 while read -r full_key; do
-  key=${full_key/stop_key/}
-  if [["$key" != apply_* ]]; then
+  key=${full_key/$top_key/}
+  if [[ "$key" != apply_* ]]; then
     backup_file=${backup_directory}/$key
-    if [ -a $backup_file ]; then
+    if [ -a "$backup_file" ]; then
       echo "$backup_file already exists"
       fileexist=1
     fi
@@ -44,7 +44,8 @@ while read -r full_key; do
 done < /tmp/backup_config.$$.stdout
 
 if [ $fileexist != 0 ]; then
-  echo "Some of the files (see list above) to be downloaded already exist in $backup_directory please delete them manually and rerun this command if this is the right directory to backup to"
+  echo "Some of the files (see list above) to be downloaded already exist in ${backup_directory}."
+  echo "If you are sure you want to backup to this location, please delete them, then try again."
   exit 4
 fi
 
@@ -53,14 +54,14 @@ while read -r full_key; do
   if [[ "$key" != apply_* ]]; then
     backup_file=${backup_directory}/$key
 
-    clearwater-etcdctl get $full_key > "${backup_file}" 2> /tmp/backup_config.$key.$$
+    clearwater-etcdctl get "$full_key" > "${backup_file}" 2> /tmp/backup_config."$key".$$
 
     rc=$?
 
     # Check the return code and log if appropriate.
     if [ $rc != 0 ] ; then
       echo "Failed to get $full_key from etcd config with return code $rc" >&2
-      cat /tmp/backup_config.$key.$$              >&2
+      cat /tmp/backup_config."$key".$$              >&2
       exit 3
     fi
   fi
