@@ -16,10 +16,10 @@ if [ $# -ne 0 ]
 then
   if [ "$1" == -h ] || [ "$1" == --help ]
   then
-    echo "Usage: check_cluster_state"
+    echo "Usage: cw-check_cluster_state"
     exit 0
   else
-    echo "Usage: check_cluster_state"
+    echo "Usage: cw-check_cluster_state"
     exit 1
   fi
 fi
