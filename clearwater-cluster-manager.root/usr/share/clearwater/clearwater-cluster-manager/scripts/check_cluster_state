@@ -14,8 +14,14 @@ site_names=
 
 if [ $# -ne 0 ]
 then
-  echo "Usage: check_cluster_state"
-  exit 1
+  if [ "$1" == -h ] || [ "$1" == --help ]
+  then
+    echo "Usage: check_cluster_state"
+    exit 0
+  else
+    echo "Usage: check_cluster_state"
+    exit 1
+  fi
 fi
 
 /usr/share/clearwater/clearwater-cluster-manager/env/bin/python /usr/share/clearwater/clearwater-cluster-manager/scripts/check_cluster_state.py "${management_local_ip:-$local_ip}" "$local_ip" "$local_site_name" "$site_names"
