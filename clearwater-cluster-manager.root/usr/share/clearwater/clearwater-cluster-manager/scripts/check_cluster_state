@@ -8,6 +8,7 @@
 
 set -ue
 
+USAGE="Usage: cw-check_cluster_state"
 local_site_name=site1
 site_names=
 . /etc/clearwater/config
@@ -16,10 +17,10 @@ if [ $# -ne 0 ]
 then
   if [ "$1" == -h ] || [ "$1" == --help ]
   then
-    echo "Usage: cw-check_cluster_state"
+    echo $USAGE
     exit 0
   else
-    echo "Usage: cw-check_cluster_state"
+    echo $USAGE
     exit 1
   fi
 fi
