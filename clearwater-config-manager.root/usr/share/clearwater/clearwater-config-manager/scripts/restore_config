@@ -37,10 +37,18 @@ shopt -s nullglob
 
 FILES="${backup_directory}/*"
 
+tmp_backup_dir=/tmp/backup
+mkdir $tmp_backup_dir
+cw-backup_config $tmp_backup_dir
+
 for f in $FILES
 do
   key=$(basename $f)
   if [ $key != "apply_config" ]; then
+    # Log all changes to syslog - compare to most recent version that we
+    # downloaded to tmp_backup_dir
+    /usr/share/clearwater/clearwater-config-manager/env/bin/print_diff_and_syslog --config_type $key --config_1_path $tmp_backup_dir/$key --config_2_path ${backup_directory}/$key > /dev/null
+
     # Upload the file to etcd
     keypath=http://${management_local_ip:-$local_ip}:4000/v2/keys/${top_key}/$key
     tmp_file=/tmp/restore-config.$key
@@ -58,4 +66,6 @@ do
     rm -f ${tmp_file}.stderr.$$ ${tmp_file}.stdout.$$
   fi
 done
+
+rm -r $tmp_backup_dir
 
