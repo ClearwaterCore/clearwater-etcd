@@ -37,7 +37,7 @@ shopt -s nullglob
 
 FILES="${backup_directory}/*"
 
-tmp_backup_dir=/tmp/backup
+tmp_backup_dir=$(mktemp -d /tmp/backup_XXXXX)
 mkdir $tmp_backup_dir
 cw-backup_config $tmp_backup_dir
 
