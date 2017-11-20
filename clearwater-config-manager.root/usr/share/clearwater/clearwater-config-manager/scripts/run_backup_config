@@ -3,7 +3,7 @@
 # Runs backup_config with any given parameters using the craft daemon
 if [ "$#" -eq 1 ]; then
     if [ -d "$1" ]; then
-        /usr/share/clearwater/craft/env/bin/run_action BackupConfig $(cd $1; pwd)
+        /usr/share/clearwater/craft/env/bin/run_action BackupConfig "$(cd "$1"; pwd)"
     else
         echo "Please specify an existing directory."
     fi
