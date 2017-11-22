@@ -1,4 +1,0 @@
-#!/bin/bash
-
-# Runs restore_config with any given parameters using the craft daemon.
-/usr/share/clearwater/craft/env/bin/run_action RestoreConfig $@
