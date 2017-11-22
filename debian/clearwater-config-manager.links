@@ -1,5 +1,5 @@
 /usr/share/clearwater/clearwater-config-manager/scripts/cw-config /usr/bin/cw-config
+/usr/share/clearwater/clearwater-config-manager/scripts/restore_config /usr/bin/cw-restore_config
 
 /usr/share/clearwater/clearwater-config-manager/scripts/run_check_config_sync /usr/bin/cw-check_config_sync
 /usr/share/clearwater/clearwater-config-manager/scripts/run_backup_config /usr/bin/cw-backup_config
-/usr/share/clearwater/clearwater-config-manager/scripts/run_restore_config /usr/bin/cw-restore_config
