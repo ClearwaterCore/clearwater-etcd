@@ -64,5 +64,5 @@ do
   fi
 done
 
-rm -r $tmp_backup_dir
+rm -rf $tmp_backup_dir
 
