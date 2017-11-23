@@ -23,6 +23,11 @@ setup(
         '': ['*.eml'],
         },
     test_suite='metaswitch.clearwater.config_manager.test',
+    entry_points={
+        'console_scripts': [
+            'print_diff_and_syslog = metaswitch.clearwater.config_manager.print_diff_and_syslog_entrypoint:main'
+        ]
+    },
     install_requires=[
         "clearwater_etcd_shared",
         "metaswitchcommon",
