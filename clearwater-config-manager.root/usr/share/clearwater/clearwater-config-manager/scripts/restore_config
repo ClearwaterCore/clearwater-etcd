@@ -42,12 +42,19 @@ fi
 # we don't attempt to upload a file named *.
 shopt -s nullglob
 
-FILES="${backup_directory}/*"
+FILES=(${backup_directory}/*)
+
+# Check that there are files inside backup_directory
+if [ ${#FILES[@]} -eq 0 ]
+then
+  echo "No available configuration to restore in: $backup_directory " >&2
+  exit 1
+fi
 
 tmp_backup_dir=$(mktemp -d /tmp/backup_XXXXX)
 cw-backup_config $tmp_backup_dir
 
-for f in $FILES
+for f in "${FILES[@]}"
 do
   key=$(basename $f)
   if [ $key != "apply_config" ]; then
