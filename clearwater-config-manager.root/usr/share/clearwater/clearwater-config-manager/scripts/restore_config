@@ -62,6 +62,13 @@ do
     echo "$key is a directory it will not be uploaded"
   else
     if [ $key != "apply_config" ]; then
+
+      if [! -e "$tmp_backup_dir/$key"];
+      then
+        echo "$key does not exist currently on etcd" >&2
+        echo "This will be uploaded as a first instance of the file" >&2
+        touch "$tmp_backup_dir/$key"
+      fi
       # Log all changes to syslog - compare to most recent version that we
       # downloaded to tmp_backup_dir
       /usr/share/clearwater/clearwater-config-manager/env/bin/print_diff_and_syslog --config_type $key --config_before $tmp_backup_dir/$key --config_after ${backup_directory}/$key > /dev/null
