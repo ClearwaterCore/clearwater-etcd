@@ -57,26 +57,31 @@ cw-backup_config $tmp_backup_dir
 for f in "${FILES[@]}"
 do
   key=$(basename $f)
-  if [ $key != "apply_config" ]; then
-    # Log all changes to syslog - compare to most recent version that we
-    # downloaded to tmp_backup_dir
-    /usr/share/clearwater/clearwater-config-manager/env/bin/print_diff_and_syslog --config_type $key --config_before $tmp_backup_dir/$key --config_after ${backup_directory}/$key > /dev/null
+  if [ -d "$f" ]
+  then
+    echo "$key is a directory it will not be uploaded"
+  else
+    if [ $key != "apply_config" ]; then
+      # Log all changes to syslog - compare to most recent version that we
+      # downloaded to tmp_backup_dir
+      /usr/share/clearwater/clearwater-config-manager/env/bin/print_diff_and_syslog --config_type $key --config_before $tmp_backup_dir/$key --config_after ${backup_directory}/$key > /dev/null
 
-    # Upload the file to etcd
-    keypath=http://${management_local_ip:-$local_ip}:4000/v2/keys/${top_key}/$key
-    tmp_file=/tmp/restore-config.$key
-    curl -X PUT $keypath --data-urlencode value@${f} 2> ${tmp_file}.stderr.$$ | tee ${tmp_file}.stdout.$$ | egrep -q "\"action\":\"set\""
-    rc=$?
+      # Upload the file to etcd
+      keypath=http://${management_local_ip:-$local_ip}:4000/v2/keys/${top_key}/$key
+      tmp_file=/tmp/restore-config.$key
+      curl -X PUT $keypath --data-urlencode value@${f} 2> ${tmp_file}.stderr.$$ | tee ${tmp_file}.stdout.$$ | egrep -q "\"action\":\"set\""
+      rc=$?
 
-    # Check the return code and log if appropriate.
-    if [ $rc != 0 ] ; then
-      echo "Failed to upload key $key to etcd with return code $rc" >&2
-      cat ${tmp_file}.stderr.$$              >&2
-      cat ${tmp_file}.stdout.$$              >&2
-      exit 3
+      # Check the return code and log if appropriate.
+      if [ $rc != 0 ] ; then
+        echo "Failed to upload key $key to etcd with return code $rc" >&2
+        cat ${tmp_file}.stderr.$$              >&2
+        cat ${tmp_file}.stdout.$$              >&2
+        exit 3
+      fi
+
+      rm -f ${tmp_file}.stderr.$$ ${tmp_file}.stdout.$$
     fi
-
-    rm -f ${tmp_file}.stderr.$$ ${tmp_file}.stdout.$$
   fi
 done
 
