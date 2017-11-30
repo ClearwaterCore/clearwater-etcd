@@ -63,10 +63,9 @@ do
   else
     if [ $key != "apply_config" ]; then
 
-      if [! -e "$tmp_backup_dir/$key"];
+      if [ ! -e "$tmp_backup_dir/$key" ]
       then
-        echo "$key does not exist currently on etcd" >&2
-        echo "This will be uploaded as a first instance of the file" >&2
+        # create an empty version of this file to compare against for logging
         touch "$tmp_backup_dir/$key"
       fi
       # Log all changes to syslog - compare to most recent version that we
