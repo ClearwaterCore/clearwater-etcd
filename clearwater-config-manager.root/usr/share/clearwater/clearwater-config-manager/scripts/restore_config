@@ -44,7 +44,8 @@ shopt -s nullglob
 
 FILES=("${backup_directory}"/*)
 
-# Check that there are files inside backup_directory
+# The backup directory should contain some files, otherwise there is nothing
+# to restore.
 if [ ${#FILES[@]} -eq 0 ]
 then
   echo "No available configuration to restore in: $backup_directory " >&2
@@ -54,46 +55,46 @@ fi
 tmp_backup_dir=$(mktemp -d /tmp/backup_XXXXX)
 cw-backup_config $tmp_backup_dir
 
-for f in "${FILES[@]}"
+for filename in "${FILES[@]}"
 do
-  key=$(basename "$f")
-  # creates an array of key seperated by spaces, used in elif statement
-  a=( $key )
-  #test if the filename contains a space or is a directory
-  if [ -d "$f" ]
+  key=$(basename "$filename")
+  key_in_array=( $key )
+  if [ -d "$filename" ]
   then
     echo "$key is a directory, it will not be uploaded"
-  elif [ "${a[0]}" != "$key" ]
+    continue
+  fi
+  if [ "${key_in_array[0]}" != "$key" ]
   then
     echo "$key contains a space in the filename, it will not be uploaded"
-  else
-    if [ "$key" != "apply_config" ]; then
+    continue
+  fi
+  if [ "$key" != "apply_config" ]; then
 
-      if [ ! -e "$tmp_backup_dir/$key" ]
-      then
-        # create an empty version of this file to compare against for logging
-        touch "$tmp_backup_dir/$key"
-      fi
-      # Log all changes to syslog - compare to most recent version that we
-      # downloaded to tmp_backup_dir
-      /usr/share/clearwater/clearwater-config-manager/env/bin/print_diff_and_syslog --config_type "$key" --config_before "$tmp_backup_dir/$key" --config_after "${backup_directory}/$key" > /dev/null
-
-      # Upload the file to etcd
-      keypath=http://${management_local_ip:-$local_ip}:4000/v2/keys/${top_key}/$key
-      tmp_file=/tmp/restore-config.$key
-      curl -X PUT $keypath --data-urlencode value@${f} 2> ${tmp_file}.stderr.$$ | tee ${tmp_file}.stdout.$$ | egrep -q "\"action\":\"set\""
-      rc=$?
-
-      # Check the return code and log if appropriate.
-      if [ $rc != 0 ] ; then
-        echo "Failed to upload key $key to etcd with return code $rc" >&2
-        cat ${tmp_file}.stderr.$$              >&2
-        cat ${tmp_file}.stdout.$$              >&2
-        exit 3
-      fi
-
-      rm -f ${tmp_file}.stderr.$$ ${tmp_file}.stdout.$$
+    if [ ! -e "$tmp_backup_dir/$key" ]
+    then
+      # create an empty version of this file to compare against for logging
+      touch "$tmp_backup_dir/$key"
     fi
+    # Log all changes to syslog - compare to most recent version that we
+    # downloaded to tmp_backup_dir
+    /usr/share/clearwater/clearwater-config-manager/env/bin/print_diff_and_syslog --config_type "$key" --config_before "$tmp_backup_dir/$key" --config_after "${backup_directory}/$key" > /dev/null
+
+    # Upload the file to etcd
+    keypath=http://${management_local_ip:-$local_ip}:4000/v2/keys/${top_key}/$key
+    tmp_file=/tmp/restore-config.$key
+    curl -X PUT $keypath --data-urlencode value@${f} 2> ${tmp_file}.stderr.$$ | tee ${tmp_file}.stdout.$$ | egrep -q "\"action\":\"set\""
+    rc=$?
+
+    # Check the return code and log if appropriate.
+    if [ $rc != 0 ] ; then
+      echo "Failed to upload key $key to etcd with return code $rc" >&2
+      cat ${tmp_file}.stderr.$$              >&2
+      cat ${tmp_file}.stdout.$$              >&2
+      exit 3
+    fi
+
+    rm -f ${tmp_file}.stderr.$$ ${tmp_file}.stdout.$$
   fi
 done
 
