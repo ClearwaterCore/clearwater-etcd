@@ -46,7 +46,7 @@ FILES=("${backup_directory}"/*)
 
 # The backup directory should contain some files, otherwise there is nothing
 # to restore.
-if [ ${#FILES[@]} -eq 0 ]
+if [[ ${#FILES[@]} -eq 0 ]]
 then
   echo "No available configuration to restore in: $backup_directory " >&2
   exit 1
