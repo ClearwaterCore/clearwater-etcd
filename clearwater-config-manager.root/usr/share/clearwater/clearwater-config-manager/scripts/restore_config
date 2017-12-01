@@ -6,7 +6,7 @@
 # the license outlined in that COPYING file applies to your use.
 # Otherwise no rights are granted except for those provided to you by
 # Metaswitch Networks in a separate written agreement.
-if [ -z "$1" ]
+if [[ -z $1 ]]
 then
   echo "You must provide a location to restore the configuration from" >&2
   echo >&2
@@ -15,7 +15,7 @@ then
 fi
 
 # make sure the provided path exists and is a directory
-if [ ! -d "$1" ]
+if [[ ! -d $1 ]]
 then
   echo "The provided location '$1' is not a directory" >&2
   echo >&2
@@ -59,19 +59,19 @@ for filename in "${FILES[@]}"
 do
   key=$(basename "$filename")
   key_in_array=( $key )
-  if [ -d "$filename" ]
+  if [[ -d $filename ]]
   then
     echo "$key is a directory, it will not be uploaded"
     continue
   fi
-  if [ "${key_in_array[0]}" != "$key" ]
+  if [[ ${key_in_array[0]} != $key ]]
   then
     echo "$key contains a space in the filename, it will not be uploaded"
     continue
   fi
   if [ "$key" != "apply_config" ]; then
 
-    if [ ! -e "$tmp_backup_dir/$key" ]
+    if [[ ! -e $tmp_backup_dir/$key ]]
     then
       # create an empty version of this file to compare against for logging
       touch "$tmp_backup_dir/$key"
