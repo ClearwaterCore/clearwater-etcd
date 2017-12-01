@@ -6,8 +6,7 @@
 # the license outlined in that COPYING file applies to your use.
 # Otherwise no rights are granted except for those provided to you by
 # Metaswitch Networks in a separate written agreement.
-if [[ -z $1 ]]
-then
+if [[ -z $1 ]]; then
   echo "You must provide a location to restore the configuration from" >&2
   echo >&2
   echo "Usage: $0 backup_directory" >&2
@@ -15,8 +14,7 @@ then
 fi
 
 # make sure the provided path exists and is a directory
-if [[ ! -d $1 ]]
-then
+if [[ ! -d $1 ]]; then
   echo "The provided location '$1' is not a directory" >&2
   echo >&2
   echo "Usage: $0 backup_directory" >&2
@@ -42,12 +40,11 @@ fi
 # we don't attempt to upload a file named *.
 shopt -s nullglob
 
-FILES=("${backup_directory}"/*)
+FILES=("$backup_directory"/*)
 
 # The backup directory should contain some files, otherwise there is nothing
 # to restore.
-if [[ ${#FILES[@]} -eq 0 ]]
-then
+if [[ ${#FILES[@]} -eq 0 ]]; then
   echo "No available configuration to restore in: $backup_directory " >&2
   exit 1
 fi
@@ -58,27 +55,22 @@ cw-backup_config $tmp_backup_dir
 for filename in "${FILES[@]}"
 do
   key=$(basename "$filename")
-  key_in_array=( $key )
-  if [[ -d $filename ]]
-  then
+  if [[ -d $filename ]]; then
     echo "$key is a directory, it will not be uploaded"
     continue
   fi
-  if [[ ${key_in_array[0]} != $key ]]
-  then
+  if [[ $key =~ " " ]]; then
     echo "$key contains a space in the filename, it will not be uploaded"
     continue
   fi
   if [ "$key" != "apply_config" ]; then
-
-    if [[ ! -e $tmp_backup_dir/$key ]]
-    then
+    if [[ ! -e $tmp_backup_dir/$key ]]; then
       # create an empty version of this file to compare against for logging
       touch "$tmp_backup_dir/$key"
     fi
     # Log all changes to syslog - compare to most recent version that we
     # downloaded to tmp_backup_dir
-    /usr/share/clearwater/clearwater-config-manager/env/bin/print_diff_and_syslog --config_type "$key" --config_before "$tmp_backup_dir/$key" --config_after "${backup_directory}/$key" > /dev/null
+    /usr/share/clearwater/clearwater-config-manager/env/bin/print_diff_and_syslog --config_type "$key" --config_before "$tmp_backup_dir/$key" --config_after "$backup_directory/$key" > /dev/null
 
     # Upload the file to etcd
     keypath=http://${management_local_ip:-$local_ip}:4000/v2/keys/${top_key}/$key
