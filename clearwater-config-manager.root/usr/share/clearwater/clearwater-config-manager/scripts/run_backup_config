@@ -1,4 +1,4 @@
 #!/bin/bash
 
 # Runs backup_config with any given parameters using the craft daemon
-/usr/share/clearwater/craft/env/bin/run_action BackupConfig $@
+/usr/share/clearwater/craft/env/bin/run_action BackupConfig "$@"
