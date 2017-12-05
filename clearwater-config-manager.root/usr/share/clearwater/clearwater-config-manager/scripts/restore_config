@@ -75,7 +75,7 @@ do
     # Upload the file to etcd
     keypath=http://${management_local_ip:-$local_ip}:4000/v2/keys/${top_key}/$key
     tmp_file=/tmp/restore-config.$key
-    curl -X PUT $keypath --data-urlencode value@${f} 2> ${tmp_file}.stderr.$$ | tee ${tmp_file}.stdout.$$ | egrep -q "\"action\":\"set\""
+    curl -X PUT $keypath --data-urlencode value@${filename} 2> ${tmp_file}.stderr.$$ | tee ${tmp_file}.stdout.$$ | egrep -q "\"action\":\"set\""
     rc=$?
 
     # Check the return code and log if appropriate.
