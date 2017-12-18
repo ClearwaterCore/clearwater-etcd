@@ -31,7 +31,8 @@ setup(
     install_requires=[
         "clearwater_etcd_shared",
         "metaswitchcommon",
-        "requests"],
+        "requests",
+        "jsonschema"],
     tests_require=[
         "funcsigs",
         "Mock",
