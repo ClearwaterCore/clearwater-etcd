@@ -1,9 +1,9 @@
 """Wrapper script to use `print_diff_and_syslog` on the command line."""
-import argparse
-from metaswitch.clearwater.config_manager.config_access import print_diff_and_syslog
+import argparse #pragma: no cover
+from metaswitch.clearwater.config_manager.config_access import print_diff_and_syslog #pragma: no cover
 
 
-def main():
+def main(): #pragma: no cover
     parser = argparse.ArgumentParser()
     parser.add_argument('--config_type', type=str)
     parser.add_argument('--config_before', type=str)
@@ -19,5 +19,5 @@ def main():
     print_diff_and_syslog(args.config_type, config_1, config_2)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__': #pragma: no cover
     main()
