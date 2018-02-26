@@ -15,7 +15,8 @@
             "minLength": 1,
             "maxLength": 256
           }
-        }
+        },
+        "additionalProperties": false
       },
       "additionalItems": false
     }
