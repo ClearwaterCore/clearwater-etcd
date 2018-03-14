@@ -88,4 +88,3 @@ class TestSASJSONPlugin(unittest.TestCase):
         mock_run_command.assert_any_call(["/usr/share/clearwater/infrastructure/scripts/sas_socket_factory"])
         mock_run_command.assert_any_call(["/usr/share/clearwater/bin/reload_sas_json"])
         mock_alarm.update_file.assert_called_once_with(plugin.file())
-
