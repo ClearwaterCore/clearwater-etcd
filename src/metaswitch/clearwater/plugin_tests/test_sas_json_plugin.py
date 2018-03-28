@@ -18,10 +18,9 @@ from clearwater_etcd_plugins.clearwater_config_manager.sas_json_plugin import SA
 
 class TestSASJSONPlugin(unittest.TestCase):
     @mock.patch("metaswitch.clearwater.config_manager.alarms.ConfigAlarm")
-    @mock.patch('clearwater_etcd_plugins.clearwater_queue_manager.apply_config_plugin.subprocess.check_output')
     @mock.patch('clearwater_etcd_plugins.clearwater_config_manager.sas_json_plugin.safely_write')
     @mock.patch('clearwater_etcd_plugins.clearwater_config_manager.sas_json_plugin.run_command')
-    def test_config_changed(self, mock_run_command, mock_safely_write, mock_subproc_check_output, mock_alarm):
+    def test_config_changed(self, mock_run_command, mock_safely_writem, mock_alarm):
         """Test Config Manager writes new config when config has changed"""
 
         # Create the plugin
@@ -30,8 +29,6 @@ class TestSASJSONPlugin(unittest.TestCase):
         # Set up the config strings to be tested
         old_config_string = "Test config string here. \n More test config string."
         new_config_string = "This is a different config string. \n Like, totally different."
-
-        mock_subproc_check_output.return_value = "apply_config_key"
 
         # Call 'on_config_changed' with file.open mocked out
         with mock.patch('clearwater_etcd_plugins.clearwater_config_manager.sas_json_plugin.open',\
@@ -42,9 +39,7 @@ class TestSASJSONPlugin(unittest.TestCase):
         mock_open.assert_called_once_with(plugin.file(), "r")
         mock_safely_write.assert_called_once_with(plugin.file(), new_config_string)
         mock_run_command.assert_any_call(["/usr/share/clearwater/infrastructure/scripts/sas_socket_factory"])
-        mock_run_command.assert_any_call \
-            (['/usr/share/clearwater/clearwater-queue-manager/scripts/modify_nodes_in_queue', \
-            'add', 'apply_config_key'])
+        mock_run_command.assert_any_call(["/usr/share/clearwater/bin/reload_sas_json"])
         mock_alarm.update_file.assert_called_once_with(plugin.file())
 
     @mock.patch('clearwater_etcd_plugins.clearwater_config_manager.sas_json_plugin.safely_write')
@@ -70,10 +65,9 @@ class TestSASJSONPlugin(unittest.TestCase):
         mock_run_command.assert_not_called()
 
     @mock.patch("metaswitch.clearwater.config_manager.alarms.ConfigAlarm")
-    @mock.patch('clearwater_etcd_plugins.clearwater_queue_manager.apply_config_plugin.subprocess.check_output')
     @mock.patch('clearwater_etcd_plugins.clearwater_config_manager.sas_json_plugin.safely_write')
     @mock.patch('clearwater_etcd_plugins.clearwater_config_manager.sas_json_plugin.run_command')
-    def test_default_config_created(self, mock_run_command, mock_safely_write, mock_subproc_check_output, mock_alarm):
+    def test_default_config_created(self, mock_run_command, mock_safely_write, mock_alarm):
         """Test Config Manager when a new default value is set as etcd key"""
 
         # Create the plugin
@@ -82,8 +76,6 @@ class TestSASJSONPlugin(unittest.TestCase):
         # Set up the config strings to be tested
         old_config_string = "This is clearly not the default config value."
         new_config_string = plugin.default_value()
-
-        mock_subproc_check_output.return_value = "apply_config_key"
 
         # Call 'on_config_changed' with file.open mocked out
         with mock.patch('clearwater_etcd_plugins.clearwater_config_manager.sas_json_plugin.open',\
@@ -94,7 +86,5 @@ class TestSASJSONPlugin(unittest.TestCase):
         mock_open.assert_called_once_with(plugin.file(), "r")
         mock_safely_write.assert_called_once_with(plugin.file(), plugin.default_value())
         mock_run_command.assert_any_call(["/usr/share/clearwater/infrastructure/scripts/sas_socket_factory"])
-        mock_run_command.assert_any_call \
-            (['/usr/share/clearwater/clearwater-queue-manager/scripts/modify_nodes_in_queue', \
-            'add', 'apply_config_key'])
+        mock_run_command.assert_any_call(["/usr/share/clearwater/bin/reload_sas_json"])
         mock_alarm.update_file.assert_called_once_with(plugin.file())
