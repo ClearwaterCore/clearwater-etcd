@@ -20,7 +20,7 @@ class TestSASJSONPlugin(unittest.TestCase):
     @mock.patch("metaswitch.clearwater.config_manager.alarms.ConfigAlarm")
     @mock.patch('clearwater_etcd_plugins.clearwater_config_manager.sas_json_plugin.safely_write')
     @mock.patch('clearwater_etcd_plugins.clearwater_config_manager.sas_json_plugin.run_command')
-    def test_config_changed(self, mock_run_command, mock_safely_writem, mock_alarm):
+    def test_config_changed(self, mock_run_command, mock_safely_write, mock_alarm):
         """Test Config Manager writes new config when config has changed"""
 
         # Create the plugin
