@@ -90,7 +90,7 @@ def check_status():
 
 def run_loop():
     # Seconds after which we return an error
-    time_remaining = 450
+    time_remaining = 420
     count_since_critical = 0
 
     while time_remaining:

@@ -6,6 +6,7 @@
 # Metaswitch Networks in a separate written agreement.
 from metaswitch.clearwater.queue_manager.plugin_base import QueuePluginBase
 from metaswitch.clearwater.queue_manager.etcd_synchronizer import WriteToEtcdStatus
+from time import sleep
 
 class TestPlugin(QueuePluginBase):
     def key(self):
@@ -34,20 +35,6 @@ class TestNoTimerDelayPlugin(QueuePluginBase):
 
     def at_front_of_queue(self):
         pass
-
-
-class TestRemoveFromQueueAfterProcessingPlugin(QueuePluginBase):
-    def __init__(self, etcd_synchronizer):
-        self.etcd_synchronizer = etcd_synchronizer
-
-    def key(self):
-        return "queue_test"
-
-    def at_front_of_queue(self):
-        """Remove the node from the queue."""
-        while self.etcd_synchronizer.remove_from_queue(True) != WriteToEtcdStatus.SUCCESS:
-            sleep(2)
-
 
 class TestFVPlugin(QueuePluginBase):
     def __init__(self, *args, **kwargs):
