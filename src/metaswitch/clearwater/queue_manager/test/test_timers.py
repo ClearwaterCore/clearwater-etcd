@@ -9,7 +9,8 @@
 
 from metaswitch.clearwater.etcd_shared.test.mock_python_etcd import EtcdFactory
 from metaswitch.clearwater.queue_manager.etcd_synchronizer import EtcdSynchronizer
-from .plugin import TestNoTimerDelayPlugin
+from metaswitch.clearwater.queue_manager.null_plugin import NullPlugin
+from .plugin import TestNoTimerDelayPlugin, TestRemoveFromQueueAfterProcessingPlugin
 from mock import patch
 from .test_base import BaseQueueTest
 
@@ -80,3 +81,34 @@ class TimersTest(BaseQueueTest):
                    ("UNRESPONSIVE" == val.get("ERRORED")[0]["STATUS"])
 
         self.assertTrue(self.wait_for_success_or_fail(pass_criteria))
+
+
+class SucessfulProcessingTimersTest(BaseQueueTest):
+    """Test cases for when nodes successfully finish processing."""
+    @patch("etcd.Client", new=EtcdFactory)
+    def setUp(self):
+        alarms_patch.start()
+        null_etcd_synchronizer = EtcdSynchronizer(NullPlugin("queue_test"), "10.0.0.1", "local",
+                                                  "clearwater", "node")
+        self._p = TestRemoveFromQueueAfterProcessingPlugin(null_etcd_synchronizer)
+        self._e = EtcdSynchronizer(self._p, "10.0.0.1", "local", "clearwater", "node")
+
+    @patch("metaswitch.clearwater.queue_manager.timers.QueueTimer")
+    def test_timer_gets_cancelled(self, mock_queue_timer):
+        """Tests that a node cancels its own timer once it finishes processing."""
+        # Add node as processing to front of queue
+        self.set_initial_val("{\"FORCE\": false, \"ERRORED\": [], \"COMPLETED\": [], \"QUEUED\": [{\"ID\":\"10.0.0.1-node\",\"STATUS\":\"PROCESSING\"}]}")
+
+        # Check that the node removes itself from the queue after finishing processing.
+        def pass_criteria(val):
+            return (0 == len(val.get("ERRORED"))) and \
+                   (0 == len(val.get("COMPLETED"))) and \
+                   (0 == len(val.get("QUEUED")))
+        self.assertTrue(self.wait_for_success_or_fail(pass_criteria))
+
+        # Once the node finished processing the timer should get cleared to join the timer thread
+        # and then set to None.
+        mock_queue_timer.clear.assert_called_once()
+
+        timer = self._e._fsm._timer
+        self.assertTrue(timer is None)
