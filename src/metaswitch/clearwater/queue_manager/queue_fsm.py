@@ -13,8 +13,8 @@ import logging
 
 _log = logging.getLogger("queue_manager.queue_fsm")
 
-class QueueFSM(object):
 
+class QueueFSM(object):
     def __init__(self, plugin, node_id, callback_func):
         self._queue_config = None
 
@@ -111,7 +111,7 @@ class QueueFSM(object):
             global_state_action()
 
     def _set_timer_for_first_node_in_queue(self):
-        if self._timer != None: #pragma: no cover
+        if self._timer is not None: #pragma: no cover
             self._timer.clear()
         self._timer = QueueTimer(self._timer_callback_func)
         self._timer.set(self._queue_config.node_at_the_front_of_the_queue(), self._plugin.WAIT_FOR_OTHER_NODE)
