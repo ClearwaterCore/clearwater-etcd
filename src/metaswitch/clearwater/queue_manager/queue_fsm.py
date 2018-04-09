@@ -79,10 +79,6 @@ class QueueFSM(object):
 
             # Does the timer relate to the node at the front of the queue?
             if self._timer.timer_id == self._queue_config.node_at_the_front_of_the_queue():
-                # Is the node at the front of the queue this node?
-                if self._queue_config.node_at_the_front_of_the_queue() == self._id:
-                    self._local_alarm.critical()
-
                 self._queue_config.mark_node_as_unresponsive(self._queue_config.node_at_the_front_of_the_queue())
                 self._timer.clear()
                 self._timer = None
