@@ -8,13 +8,25 @@
 # Metaswitch Networks in a separate written agreement.
 
 import os
-import sys
+from os import sys, umask
 import subprocess
-from time import sleep
+from time import sleep, gmtime
 import logging
 
-_log = logging.getLogger(__name__)
+logfile = "/var/log/clearwater-queue-manager/check_node_health.log"
+_log = logging.getLogger("queue_manager.check_health")
+_log.setLevel(logging.DEBUG)
 
+# Need the logfile to be writable by group members, even when running as
+# root.
+umask(0002)
+handler = logging.FileHandler(logfile)
+handler.setLevel(logging.DEBUG)
+log_format = logging.Formatter(fmt="%(asctime)s.%(msecs)03d UTC %(levelname)s %(filename)s:%(lineno)d: %(message)s",
+                               datefmt="%d-%m-%Y %H:%M:%S")
+log_format.converter = gmtime
+handler.setFormatter(log_format)
+_log.addHandler(handler)
 
 class Status:
     OK = 0
