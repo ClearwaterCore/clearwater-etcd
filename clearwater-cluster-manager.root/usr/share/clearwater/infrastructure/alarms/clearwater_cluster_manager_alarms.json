@@ -114,6 +114,29 @@
                     "action": "Do not terminate the node until decommissioning is complete."
                 }
             ]
+        },
+        {
+            "index": 8005,
+            "name": "CLUSTER_MANAGER_PROCESS_FAIL",
+            "cause": "SOFTWARE_ERROR",
+            "levels": [
+                {
+                    "severity": "CLEARED",
+                    "details": "The cluster manager process has been restored to normal operation.",
+                    "description": "Cluster manager: Process failure cleared.",
+                    "cause": "The cluster manager process has been restored to normal operation. The previously issued alarm has been cleared.",
+                    "effect": "Changes to database memberships will be synchronized across the cluster.",
+                    "action": "No action."
+                },
+                {
+                    "severity": "CRITICAL",
+                    "details": "Monit has detected that the local cluster manager process has failed. A restart will automatically be attempted. If this alarm does not clear, the cluster manager process may have been stopped or an unrecoverable failure may have occurred.",
+                    "description": "Cluster manager: Process failure.",
+                    "cause": "Monit has detected that the local cluster manager process has failed. A restart will automatically be attempted.",
+                    "effect": "Changes to database memberships will not be synchronized across the cluster.",
+                    "action": "If this alarm does not clear, the cluster manager process may have been stopped or an unrecoverable failure may have occurred. Contact your support representative."
+                }
+            ]
         }
     ]
 }

@@ -22,6 +22,29 @@
                     "action": "Monitor this alarm, and wait for it to clear. Shared configuration can take up to 30 seconds per node to percolate through the deployment. If the alarm doesn't clear in a timely fashion, contact your support representative."
                 }
             ]
+        },
+        {
+            "index": 8501,
+            "name": "CONFIG_MANAGER_PROCESS_FAIL",
+            "cause": "SOFTWARE_ERROR",
+            "levels": [
+                {
+                    "severity": "CLEARED",
+                    "details": "The config manager process has been restored to normal operation.",
+                    "description": "Config manager: Process failure cleared.",
+                    "cause": "The config manager process has been restored to normal operation. The previously issued alarm has been cleared.",
+                    "effect": "Changes to shared config will be applied to this node.",
+                    "action": "No action."
+                },
+                {
+                    "severity": "CRITICAL",
+                    "details": "Monit has detected that the local config manager process has failed. A restart will automatically be attempted. If this alarm does not clear, the config manager process may have been stopped or an unrecoverable failure may have occurred.",
+                    "description": "Config manager: Process failure.",
+                    "cause": "Monit has detected that the local config manager process has failed. A restart will automatically be attempted.",
+                    "effect": "Changes to shared config will not be applied to this node.",
+                    "action": "If this alarm does not clear, the config manager process may have been stopped or an unrecoverable failure may have occurred. Contact your support representative."
+                }
+            ]
         }
     ]
 }
