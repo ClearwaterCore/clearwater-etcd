@@ -93,9 +93,8 @@ class QueueFSM(object):
 
         if (local_queue_state != constants.LS_PROCESSING) or (local_queue_state != self._last_local_state):
             for local_state_action in self._local_fsm[local_queue_state]:
-                _log.info("performing action {}".format(local_state_action))
+                _log.debug("Performing action {}".format(local_state_action))
                 local_state_action()
-                _log.info("performed action {}".format(local_state_action))
 
         self._last_local_state = local_queue_state
         

@@ -6,7 +6,6 @@
 # Metaswitch Networks in a separate written agreement.
 from metaswitch.clearwater.queue_manager.plugin_base import QueuePluginBase
 from metaswitch.clearwater.queue_manager.etcd_synchronizer import WriteToEtcdStatus
-from time import sleep
 
 class TestPlugin(QueuePluginBase):
     def key(self):

@@ -23,27 +23,6 @@ class TimersTest(BaseQueueTest):
         self._p = TestNoTimerDelayPlugin()
         self._e = EtcdSynchronizer(self._p, "10.0.0.1", "local", "clearwater", "node")
 
-    @patch("metaswitch.clearwater.queue_manager.timers.QueueTimer")
-    def test_no_timer_set_when_processing(self, mock_queue_timer):
-        """Test that when a node is in processing state, it doesn't set a timer for itself."""
-        self.set_initial_val("{\"FORCE\": false,"
-                             " \"ERRORED\": [],"
-                             " \"COMPLETED\": [],"
-                             " \"QUEUED\": [{\"ID\":\"10.0.0.1-node\",\"STATUS\":\"PROCESSING\"}]}")
-
-        # As it is only one node, it keeps in the processing state as the plugin doesn't remove it
-        # from the queue
-        def pass_criteria(val):
-            return (0 == len(val.get("ERRORED"))) and \
-                   (0 == len(val.get("COMPLETED"))) and \
-                   (1 == len(val.get("QUEUED"))) and \
-                   ("10.0.0.1-node" == val.get("QUEUED")[0]["ID"]) and \
-                   ("PROCESSING" == val.get("QUEUED")[0]["STATUS"])
-
-        self.assertTrue(self.wait_for_success_or_fail(pass_criteria))
-
-        mock_queue_timer.clear.assert_not_called()
-
     def test_other_node_timer_pop(self):
         """Test that when a timer pops for another node it marks the other node as failed."""
         self.set_initial_val("{\"FORCE\": false,"
@@ -61,7 +40,12 @@ class TimersTest(BaseQueueTest):
         self.assertTrue(self.wait_for_success_or_fail(pass_criteria))
 
     def test_timer_pop_force_true(self):
-        """Test that when a timer pops for another node with force=true it doesn't clear the queue."""
+        """Test that when a timer pops for another node with force=true it doesn't clear the queue.
+
+        Start off with this node queued behind one other node. This node should set a timer for the
+        other node, which should pop immediately and trigger this node to mark the other as failed.
+        Because force is set to true, this node should then proceed to move to the processing state.
+        """
         self.set_initial_val("{\"FORCE\": true,"
                              " \"ERRORED\": [],"
                              " \"COMPLETED\": [],"
@@ -79,7 +63,12 @@ class TimersTest(BaseQueueTest):
         self.assertTrue(self.wait_for_success_or_fail(pass_criteria))
 
     def test_timer_pop_force_false(self):
-        """Test that when a timer pops for another node with force=false it does clear the queue."""
+        """Test that when a timer pops for another node with force=false it does clear the queue.
+
+        Start off with this node queued behind one other node. This node should set a timer for the
+        other node, which should pop immediately and trigger this node to mark the other as failed.
+        Because force is set to false, this node should be removed from the queue.
+        """
         self.set_initial_val("{\"FORCE\": false,"
                              " \"ERRORED\": [],"
                              " \"COMPLETED\": [],"
