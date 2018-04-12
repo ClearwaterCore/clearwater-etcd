@@ -1,4 +1,4 @@
-import unittestgit
+import unittest
 from mock import patch
 
 from metaswitch.clearwater.queue_manager.timers import QueueTimer
