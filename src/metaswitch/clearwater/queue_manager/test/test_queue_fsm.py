@@ -13,33 +13,31 @@ _log = logging.getLogger(__name__)
 alarms_patch = patch("metaswitch.clearwater.queue_manager.alarms.alarm_manager")
 alarms_patch.start()
 
-queue_alarm_patch = patch("metaswitch.clearwater.queue_manager.queue_fsm.QueueAlarm")
+
+def dummy_callback():
+    pass
 
 
 class QueueFsmTest(unittest.TestCase):
     """Tests the QueueFsm."""
     def setUp(self):
-        def dummy_callback():
-            pass
-
         self.plugin = TestNoTimerDelayPlugin()
 
-        # Need to patch queue_fsm.QueueAlarm before creating a QueueFSM
-        self.mock_queue_alarm = queue_alarm_patch.start()
-
-        self.queue_fsm = QueueFSM(self.plugin, "10.0.0.1-node", dummy_callback)
-
+    @patch("metaswitch.clearwater.queue_manager.queue_fsm.QueueAlarm")
     @patch.object(QueueTimer, "set")
-    def test_waiting_on_other_node_error(self, mock_queue_timer_set):
+    def test_waiting_on_other_node_error(self, mock_queue_timer_set, MockQueueAlarm):
         """Test that we set a local and global critical alarm as well as a timer for another node
         if we are in the errored state, waiting for another node."""
+        mock_queue_alarm = MockQueueAlarm()
         queue_config = {"FORCE": "false",
                         "ERRORED": [{"ID": "10.0.0.1-node", "STATUS": "UNRESPONSIVE"}],
                         "COMPLETED": [],
                         "QUEUED": [{"ID": "10.0.0.2-node", "STATUS": "PROCESSING"}]
                         }
-        self.queue_fsm.fsm_update(queue_config)
 
-        # We have mocked queue_fsm
-        assert len(self.queue_fsm._local_alarm.method_calls) == 2
+        queue_fsm = QueueFSM(self.plugin, "10.0.0.1-node", dummy_callback)
+        queue_fsm.fsm_update(queue_config)
+
+        # When in errored state, we raise two critical alarms, a local and a global one.
+        assert len(mock_queue_alarm.method_calls) == 2
         mock_queue_timer_set.assert_called_once()
