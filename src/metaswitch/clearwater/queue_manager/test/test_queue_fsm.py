@@ -150,9 +150,11 @@ class QueueFSMMethodsTest(unittest.TestCase):
 
         queue_fsm = QueueFSM(self.plugin, "10.0.0.1-node", dummy_callback)
         queue_fsm.fsm_update(queue_config)
-        #queue_fsm._set_timer_for_first_node_in_queue()
+
+        # QueueTimer.clear got called from QueueFSM.fsm_update when setting a timer for the node
+        # that is processing. We are not interested in this call so we reset the mock here.
+        mock_clear_timer.reset_mock()
+
         queue_fsm.quit()
 
-        # QueueTimer.clear gets called twice in this scenario: Once when setting a timer for the
-        # node in the queue (at QueueTimer.set) and once when quitting (at QueueFSM.quit)
-        assert mock_clear_timer.call_count == 2
+        assert mock_clear_timer.call_count == 1
