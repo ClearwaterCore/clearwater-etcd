@@ -93,7 +93,7 @@ class QueueFSM(object):
 
         if (local_queue_state != constants.LS_PROCESSING) or (local_queue_state != self._last_local_state):
             for local_state_action in self._local_fsm[local_queue_state]:
-                _log.debug("Performing action {}".format(local_state_action))
+                _log.debug("Performing local action {}".format(local_state_action))
                 local_state_action()
 
         self._last_local_state = local_queue_state
@@ -103,6 +103,7 @@ class QueueFSM(object):
         global_queue_state = self._queue_config.calculate_global_state()
         _log.debug("Global state is %s" % global_queue_state)
         for global_state_action in self._global_actions[global_queue_state]:
+            _log.debug("Performing global action{}".format(global_state_action))
             global_state_action()
 
     def _set_timer_for_first_node_in_queue(self):
