@@ -134,3 +134,25 @@ class QueueFsmTimersAndAlarmsTest(unittest.TestCase):
         assert mock_set_timer.call_count == 1
 
 
+class QueueFSMMethodsTest(unittest.TestCase):
+    """Tests various methods of QueueFSM."""
+    def setUp(self):
+        self.plugin = TestNoTimerDelayPlugin()
+
+    @patch.object(QueueTimer, "clear")
+    def test_clear_timer_on_quit(self, mock_clear_timer):
+        """Tests that the QueueFSM's timer gets cleared when quitting the QueueFSM."""
+        queue_config = {"FORCE": "false",
+                        "ERRORED": [],
+                        "COMPLETED": [],
+                        "QUEUED": [{"ID": "10.0.0.2-node", "STATUS": "PROCESSING"}]
+                        }
+
+        queue_fsm = QueueFSM(self.plugin, "10.0.0.1-node", dummy_callback)
+        queue_fsm.fsm_update(queue_config)
+        #queue_fsm._set_timer_for_first_node_in_queue()
+        queue_fsm.quit()
+
+        # QueueTimer.clear gets called twice in this scenario: Once when setting a timer for the
+        # node in the queue (at QueueTimer.set) and once when quitting (at QueueFSM.quit)
+        assert mock_clear_timer.call_count == 2
