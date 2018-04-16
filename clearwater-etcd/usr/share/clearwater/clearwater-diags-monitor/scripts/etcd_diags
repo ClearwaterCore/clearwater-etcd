@@ -1,0 +1,23 @@
+# @file cluster_diags
+#
+# Copyright (C) Metaswitch Networks 2018
+# If license terms are provided to you in a COPYING file in the root directory
+# of the source code repository by which you are accessing this code, then
+# the license outlined in that COPYING file applies to your use.
+# Otherwise no rights are granted except for those provided to you by
+# Metaswitch Networks in a separate written agreement.
+
+# This script is executed in the context of the clearwater_diags_monitor script
+# (in the clearwater-infrastructure project).
+
+copy_to_dump "/var/log/clearwater-etcd/etcd_cluster_bad_polls.log"
+clearwater-etcdctl member list > $CURRENT_DUMP_DIR/etcd_member_list.txt
+clearwater-etcdctl cluster-health > $CURRENT_DUMP_DIR/etcd_cluster_health.txt
+if [ -f /var/lib/clearwater-etcd/healthy_etcd_members ]
+then
+  echo "When the cluster was last healthy, the members were" "$(</var/lib/clearwater-etcd/healthy_etcd_members)" >> $CURRENT_DUMP_DIR/etcd_cluster_health.txt
+else
+  echo "The healthy etcd members file \"/var/lib/clearwater-etcd/healthy_etcd_members\" does not exist." >> $CURRENT_DUMP_DIR/etcd_cluster_health.txt
+fi
+curl "http://$management_local_ip:4000/v2/keys/clearwater?consistent=true&recursive=true&sorted=false" > $CURRENT_DUMP_DIR/etcd_state.txt
+curl "http://$management_local_ip:4000/v2/keys/clearwater?recursive=true&sorted=false" > $CURRENT_DUMP_DIR/etcd_state_no_consistency.txt
