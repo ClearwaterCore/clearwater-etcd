@@ -80,6 +80,11 @@ $(eval $(call etcd_component,queue_mgr))
 $(eval $(call etcd_component,config_mgr))
 $(eval $(call etcd_component,cluster_mgr))
 
+etcd_shared_TEST_REQUIREMENTS=common/requirements.txt shared-requirements.txt
+etcd_shared_TEST_SETUP=shared_setup.py
+
+$(eval $(call python_test_component,etcd_shared))
+
 # Create the plugins-test target
 plugins_TEST_REQUIREMENTS = requirements-test.txt common/requirements-test.txt common/requirements.txt shared-requirements.txt
 plugins_TEST_SETUP = plugins_setup.py

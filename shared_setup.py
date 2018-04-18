@@ -21,6 +21,7 @@ setup(
     package_data={
         '': ['*.eml'],
         },
+    test_suite='metaswitch.clearwater.etcd_shared.test',
     install_requires=[
         "docopt",
         "futures",
