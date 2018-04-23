@@ -92,7 +92,7 @@ def run_loop():
     # The time after which we return an error is supposed to be sufficiently less than the timer set
     # by the EtcdSynchronizer when deciding if a node is unresponsive (which is 480 seconds), as we
     # want to allow a node a chance to declare itself failed first.
-    time_remaining = 420
+    time_remaining = 450
     count_since_critical = 0
 
     while time_remaining:
