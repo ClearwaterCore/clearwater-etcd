@@ -4,11 +4,17 @@
 check process clearwater_cluster_manager_process with pidfile /var/run/clearwater-cluster-manager.pid
   group clearwater_cluster_manager
 
-  start program = "/bin/bash -c '/etc/init.d/clearwater-cluster-manager start'"
-  stop program = "/bin/bash -c '/etc/init.d/clearwater-cluster-manager stop'"
-  restart program = "/bin/bash -c '/etc/init.d/clearwater-cluster-manager restart'"
+  start program = "/bin/bash -c '/usr/share/clearwater/bin/issue-alarm monit 8005.3; /etc/init.d/clearwater-cluster-manager start'"
+  stop program = "/bin/bash -c '/usr/share/clearwater/bin/issue-alarm monit 8005.3; /etc/init.d/clearwater-cluster-manager stop'"
+  restart program = "/bin/bash -c '/usr/share/clearwater/bin/issue-alarm monit 8005.3; /etc/init.d/clearwater-cluster-manager restart'"
 
   # Check the service's resource usage, and abort the process if it's too high. This will
   # generate a (dummy) core file and trigger diagnostics collection.
-  if memory > 80% then exec "/bin/bash -c '/etc/init.d/clearwater-cluster-manager abort'"
+  if memory > 80% then exec "/bin/bash -c '/usr/share/clearwater/bin/issue-alarm monit 8005.3; /etc/init.d/clearwater-cluster-manager abort'"
 
+# Clear any alarms if the process has been running long enough.
+check program clearwater_cluster_manager_uptime with path /usr/share/clearwater/infrastructure/monit_uptime/check-cluster-manager-uptime
+  group clearwater_cluster_manager
+  depends on clearwater_cluster_manager_process
+  every 3 cycles
+  if status != 0 then alert
