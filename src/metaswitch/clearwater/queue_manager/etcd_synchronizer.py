@@ -68,14 +68,14 @@ class EtcdSynchronizer(CommonEtcdSynchronizer):
             if fsm_timer_future.done():
                 self._abort_read = True
                 self._stop_timer_thread = False
-                self.fsm_loop()
+                self.update_etcd()
             elif etcd_future.done():
                 self._stop_timer_thread = True
                 etcd_result = etcd_future.result()
 
                 if etcd_result is not None:
                     _log.info("Got new queue config %s from etcd" % etcd_result)
-                    self.fsm_loop(etcd_result)
+                    self.update_etcd(etcd_result)
                 else: #pragma: no cover
                     _log.warning("read_from_etcd returned None, " +
                                  "indicating a failure to get data from etcd")
@@ -92,9 +92,7 @@ class EtcdSynchronizer(CommonEtcdSynchronizer):
         while not self._stop_timer_thread and not self._terminate_flag:
             sleep(self.WAIT_FOR_TIMER_POP)
 
-    def fsm_loop(self, etcd_value=None): # Change to add helper message
-        queue_config = {}
-
+    def update_etcd(self, etcd_value=None): # Change to add helper message
         try:
             if etcd_value is None:
                 if self._last_value is None: # pragma: no cover

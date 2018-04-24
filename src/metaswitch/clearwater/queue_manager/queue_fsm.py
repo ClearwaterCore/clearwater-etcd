@@ -13,8 +13,8 @@ import logging
 
 _log = logging.getLogger("queue_manager.queue_fsm")
 
-class QueueFSM(object):
 
+class QueueFSM(object):
     def __init__(self, plugin, node_id, callback_func):
         self._queue_config = None
 
@@ -36,12 +36,11 @@ class QueueFSM(object):
                            constants.LS_FIRST_IN_QUEUE: [self._local_alarm.minor,
                                                          self.move_to_processing],
                            constants.LS_PROCESSING: [self._local_alarm.minor,
-                                                     self._set_timer_with_id,
                                                      self._plugin.at_front_of_queue],
                            constants.LS_WAITING_ON_OTHER_NODE: [self._local_alarm.clear,
-                                                                self._set_timer_with_current_node_id],
+                                                                self._set_timer_for_first_node_in_queue],
                            constants.LS_WAITING_ON_OTHER_NODE_ERROR: [self._local_alarm.critical,
-                                                                      self._set_timer_with_current_node_id]}
+                                                                      self._set_timer_for_first_node_in_queue]}
 
         # List of functions when in each global state. These functions don't
         # change the state of the node/deployment
@@ -80,10 +79,6 @@ class QueueFSM(object):
 
             # Does the timer relate to the node at the front of the queue?
             if self._timer.timer_id == self._queue_config.node_at_the_front_of_the_queue():
-                # Is the node at the front of the queue this node?
-                if self._queue_config.node_at_the_front_of_the_queue() == self._id:
-                    self._local_alarm.critical()
-
                 self._queue_config.mark_node_as_unresponsive(self._queue_config.node_at_the_front_of_the_queue())
                 self._timer.clear()
                 self._timer = None
@@ -98,6 +93,7 @@ class QueueFSM(object):
 
         if (local_queue_state != constants.LS_PROCESSING) or (local_queue_state != self._last_local_state):
             for local_state_action in self._local_fsm[local_queue_state]:
+                _log.debug("Performing local action {}".format(local_state_action))
                 local_state_action()
 
         self._last_local_state = local_queue_state
@@ -107,16 +103,11 @@ class QueueFSM(object):
         global_queue_state = self._queue_config.calculate_global_state()
         _log.debug("Global state is %s" % global_queue_state)
         for global_state_action in self._global_actions[global_queue_state]:
+            _log.debug("Performing global action{}".format(global_state_action))
             global_state_action()
 
-    def _set_timer_with_current_node_id(self):
-        if self._timer != None: #pragma: no cover
+    def _set_timer_for_first_node_in_queue(self):
+        if self._timer is not None: #pragma: no cover
             self._timer.clear()
         self._timer = QueueTimer(self._timer_callback_func)
         self._timer.set(self._queue_config.node_at_the_front_of_the_queue(), self._plugin.WAIT_FOR_OTHER_NODE)
-
-    def _set_timer_with_id(self):
-        if self._timer != None: #pragma: no cover
-            self._timer.clear()
-        self._timer = QueueTimer(self._timer_callback_func)
-        self._timer.set(self._id, self._plugin.WAIT_FOR_THIS_NODE)
