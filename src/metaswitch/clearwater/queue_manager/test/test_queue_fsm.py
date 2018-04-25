@@ -19,16 +19,17 @@ def dummy_callback():
     pass
 
 
-class QueueFsmTimersAndAlarmsTest(unittest.TestCase):
-    """Tests that the correct timers and alarms are set depending on the QueueFSM's state."""
+class QueueFsmStateTimersAndAlarmsTest (unittest.TestCase):
     def setUp(self):
         self.plugin = TestNoTimerDelayPlugin()
 
     @patch.object(QueueAlarm, "clear")
     @patch.object(QueueTimer, "set")
     def test_no_queue(self, mock_set_timer, mock_queue_alarm_clear):
-        """Test that we clear a local and global critical alarm and don't set a timer if there is an
-        empty queue (FSM state LS_NO_QUEUE)."""
+        """
+        Test that we clear a local and global critical alarm and don't set a timer if there is an
+        empty queue (FSM state LS_NO_QUEUE).
+        """
         queue_config = {"FORCE": "false",
                         "ERRORED": [],
                         "COMPLETED": [],
@@ -44,8 +45,10 @@ class QueueFsmTimersAndAlarmsTest(unittest.TestCase):
     @patch.object(QueueAlarm, "critical")
     @patch.object(QueueTimer, "set")
     def test_no_queue_error(self, mock_set_timer, mock_queue_alarm_critical):
-        """Test that we set a local and global critical alarm if we are in the errored state,
-        with an empty queue (FSM state LS_NO_QUEUE_ERROR)."""
+        """
+        Test that we set a local and global critical alarm if we are in the errored state, with an
+        empty queue (FSM state LS_NO_QUEUE_ERROR).
+        """
         queue_config = {"FORCE": "false",
                         "ERRORED": [{"ID": "10.0.0.1-node", "STATUS": "UNRESPONSIVE"}],
                         "COMPLETED": [],
@@ -62,8 +65,10 @@ class QueueFsmTimersAndAlarmsTest(unittest.TestCase):
     @patch.object(QueueAlarm, "minor")
     @patch.object(QueueTimer, "set")
     def test_first_in_queue(self, mock_set_timer, mock_queue_alarm_minor, mock_move_to_processing):
-        """Test that we set a minor local and global alarm and call move_to_processing if we are
-        first in the queue (FSM state LS_FIRST_IN_QUEUE)."""
+        """
+        Test that we set a minor local and global alarm and call move_to_processing if we are first
+        in the queue (FSM state LS_FIRST_IN_QUEUE).
+        """
         queue_config = {"FORCE": "false",
                         "ERRORED": [],
                         "COMPLETED": [],
@@ -81,8 +86,10 @@ class QueueFsmTimersAndAlarmsTest(unittest.TestCase):
     @patch.object(QueueAlarm, "minor")
     @patch.object(QueueTimer, "set")
     def test_processing(self, mock_set_timer, mock_queue_alarm_minor, mock_at_front_of_queue):
-        """Test that we set a local and global minor alarm and call the plugin's at_front_of_queue
-        method if we are processing (FSM state LS_PROCESSING)."""
+        """
+        Test that we set a local and global minor alarm and call the plugin's at_front_of_queue
+        method if we are processing (FSM state LS_PROCESSING).
+        """
         queue_config = {"FORCE": "false",
                         "ERRORED": [],
                         "COMPLETED": [],
@@ -99,9 +106,11 @@ class QueueFsmTimersAndAlarmsTest(unittest.TestCase):
     @patch.object(QueueAlarm, "clear")
     @patch.object(QueueTimer, "set")
     def test_waiting_on_other_node(self, mock_set_timer, mock_queue_alarm_clear, mock_queue_alarm_minor):
-        """Test that we clear a local alarm, set a minor global alarm as well as a timer for
-        another node if we are in the errored state, waiting for another node (FSM state
-        LS_WAITING_ON_OTHER_NODE)."""
+        """
+        Test that we clear a local alarm, set a minor global alarm as well as a timer for another
+        node if we are in the errored state, waiting for another node (FSM state
+        LS_WAITING_ON_OTHER_NODE).
+        """
         queue_config = {"FORCE": "false",
                         "ERRORED": [],
                         "COMPLETED": [],
@@ -118,9 +127,11 @@ class QueueFsmTimersAndAlarmsTest(unittest.TestCase):
     @patch.object(QueueAlarm, "critical")
     @patch.object(QueueTimer, "set")
     def test_waiting_on_other_node_error(self, mock_set_timer, mock_queue_alarm_critical):
-        """Test that we set a local and global critical alarm as well as a timer for another node
+        """
+        Test that we set a local and global critical alarm as well as a timer for another node
         if we are in the errored state, waiting for another node (FSM state
-        LS_WAITING_ON_OTHER_NODE_ERROR)."""
+        LS_WAITING_ON_OTHER_NODE_ERROR).
+        """
         queue_config = {"FORCE": "false",
                         "ERRORED": [{"ID": "10.0.0.1-node", "STATUS": "UNRESPONSIVE"}],
                         "COMPLETED": [],
@@ -134,8 +145,7 @@ class QueueFsmTimersAndAlarmsTest(unittest.TestCase):
         assert mock_set_timer.call_count == 1
 
 
-class QueueFSMMethodsTest(unittest.TestCase):
-    """Tests various methods of QueueFSM."""
+class QueueFsmMethodsTest(unittest.TestCase):
     def setUp(self):
         self.plugin = TestNoTimerDelayPlugin()
 
