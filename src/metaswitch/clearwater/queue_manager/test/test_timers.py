@@ -40,7 +40,8 @@ class TimersTest(BaseQueueTest):
         self.assertTrue(self.wait_for_success_or_fail(pass_criteria))
 
     def test_timer_pop_force_true(self):
-        """Test that when a timer pops for another node with force=true it doesn't clear the queue.
+        """
+        Test that when a timer pops for another node with force=true it doesn't clear the queue.
 
         Start off with this node queued behind one other node. This node should set a timer for the
         other node, which should pop immediately and trigger this node to mark the other as failed.
@@ -49,7 +50,8 @@ class TimersTest(BaseQueueTest):
         self.set_initial_val("{\"FORCE\": true,"
                              " \"ERRORED\": [],"
                              " \"COMPLETED\": [],"
-                             " \"QUEUED\": [{\"ID\":\"10.0.0.2-node\",\"STATUS\":\"PROCESSING\"},{\"ID\":\"10.0.0.1-node\",\"STATUS\":\"QUEUED\"}]}")
+                             " \"QUEUED\": [{\"ID\":\"10.0.0.2-node\",\"STATUS\":\"PROCESSING\"},"
+                             "{\"ID\":\"10.0.0.1-node\",\"STATUS\":\"QUEUED\"}]}")
 
         def pass_criteria(val):
             return (1 == len(val.get("ERRORED"))) and \
@@ -63,7 +65,8 @@ class TimersTest(BaseQueueTest):
         self.assertTrue(self.wait_for_success_or_fail(pass_criteria))
 
     def test_timer_pop_force_false(self):
-        """Test that when a timer pops for another node with force=false it does clear the queue.
+        """
+        Test that when a timer pops for another node with force=false it does clear the queue.
 
         Start off with this node queued behind one other node. This node should set a timer for the
         other node, which should pop immediately and trigger this node to mark the other as failed.
