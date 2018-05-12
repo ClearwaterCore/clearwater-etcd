@@ -16,6 +16,12 @@ queue_key = sys.argv[3]
 client = etcd.Client(mgmt_node, 4000)
 
 def describe_queue_state():
+    """
+    This function prints the queue state for restarting nodes, and gives a
+    return code for the queue state. The return code is 2 if any error happens,
+    1 if no error happens and some nodes are still queueing, and 0 if all nodes
+    have restarted successfullly.
+    """
     print "Describing the current queue state for {}".format(queue_key)
 
     # Pull out all the clearwater keys.
