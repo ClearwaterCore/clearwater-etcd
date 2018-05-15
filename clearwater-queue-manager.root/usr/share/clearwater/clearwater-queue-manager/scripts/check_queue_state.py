@@ -16,6 +16,12 @@ queue_key = sys.argv[3]
 client = etcd.Client(mgmt_node, 4000)
 
 def describe_queue_state():
+    """
+    This function prints the queue state for restarting nodes, and gives a
+    return code for the queue state. The return code is 2 if any error happens,
+    1 if no error happens and some nodes are still queueing, and 0 if all nodes
+    have restarted successfullly.
+    """
     print "Describing the current queue state for {}".format(queue_key)
 
     # Pull out all the clearwater keys.
@@ -26,7 +32,7 @@ def describe_queue_state():
     except etcd.EtcdKeyNotFound:
         # There's no clearwater keys yet
         print "  No queue exists for {}".format(queue_key)
-        return
+        return 2
 
     values = json.loads(result.value)
 
@@ -34,13 +40,16 @@ def describe_queue_state():
         print "  Nodes currently queued:"
         for node in values["QUEUED"]:
             print "    Node ID: {}, Node status: {}".format(node["ID"], node["STATUS"].lower())
+        return_code = 1
     else:
         print "  No nodes are currently queued"
+        return_code = 0
 
     if values["ERRORED"]:
         print "  Nodes in an errored state:"
         for node in values["ERRORED"]:
             print "    Node ID: {}, Node status: {}".format(node["ID"], node["STATUS"].lower())
+        return_code = 2 
 
 
     if values["COMPLETED"]:
@@ -49,4 +58,6 @@ def describe_queue_state():
             print "    Node ID: {}".format(node["ID"])
     
     print "\n"
+    return return_code
+
 describe_queue_state()
