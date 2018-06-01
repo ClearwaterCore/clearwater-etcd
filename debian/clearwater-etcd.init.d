@@ -26,7 +26,6 @@
 
 # Do NOT "set -e"
 
-DESC="etcd"
 NAME=clearwater-etcd
 DATA_DIR=/var/lib/$NAME
 JOINED_CLUSTER_SUCCESSFULLY=$DATA_DIR/clustered_successfully
@@ -44,6 +43,7 @@ etcd_version=3.1.7
 DAEMON=/usr/share/clearwater/clearwater-etcd/$etcd_version/etcd
 DAEMONWRAPPER=/usr/share/clearwater/clearwater-etcd/$etcd_version/etcdwrapper
 MYPID=$$
+LEAKED_NAME_CHECK=$DAEMON
 
 # Log parameters at "debug" level. These are just written to the log file (with
 # timestamps).
@@ -136,6 +136,9 @@ fi
 # Depend on lsb-base (>= 3.2-14) to ensure that this file is present
 # and status_of_proc is working.
 . /lib/lsb/init-functions
+
+# Pull in the common init.d functions
+. /usr/share/clearwater/utils/init-common.bash
 
 listen_ip=${management_local_ip:-$local_ip}
 advertisement_ip=${management_local_ip:-$local_ip}
@@ -586,25 +589,12 @@ log_debug "Process tree: " $(pstree -p -s $MYPID)
 # duplicated.
 lock || exit 1
 
-# There should only be at most one etcd process, and it should be the one in /var/run/clearwater-etcd/clearwater-etcd.pid.
-# Sanity check this, and kill and log any leaked ones.
-if [ -f $PIDFILE ] ; then
-  leaked_pids=$(pgrep -f "^$DAEMON" | grep -v $(cat $PIDFILE))
-else
-  leaked_pids=$(pgrep -f "^$DAEMON")
-fi
-if [ -n "$leaked_pids" ] ; then
-  for pid in $leaked_pids ; do
-    log_debug "Found leaked etcd $pid (correct is $(cat $PIDFILE)) - killing $pid"
-    logger -p daemon.error -t $NAME Found leaked etcd $pid \(correct is $(cat $PIDFILE)\) - killing $pid
-    kill -9 $pid
-  done
-fi
+clean_up_leaked_processes
 
 case "$1" in
   start)
-        [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
-        log_debug "Starting $DESC" "$NAME"
+        [ "$VERBOSE" != no ] && log_daemon_msg "Starting" "$NAME"
+        log_debug "Starting" "$NAME"
         do_start
         case "$?" in
                 0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
@@ -612,8 +602,8 @@ case "$1" in
         esac
         ;;
   stop)
-        [ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
-        log_debug "Stopping $DESC" "$NAME"
+        [ "$VERBOSE" != no ] && log_daemon_msg "Stopping" "$NAME"
+        log_debug "Stopping" "$NAME"
         do_stop
         case "$?" in
                 0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
@@ -628,7 +618,7 @@ case "$1" in
         # If do_reload() is not implemented then leave this commented out
         # and leave 'force-reload' as an alias for 'restart'.
         #
-        #log_daemon_msg "Reloading $DESC" "$NAME"
+        #log_daemon_msg "Reloading" "$NAME"
         #do_reload
         #log_end_msg $?
         #;;
@@ -637,8 +627,8 @@ case "$1" in
         # If the "reload" option is implemented then remove the
         # 'force-reload' alias
         #
-        log_daemon_msg "Restarting $DESC" "$NAME"
-        log_debug "Restarting $DESC" "$NAME"
+        log_daemon_msg "Restarting" "$NAME"
+        log_debug "Restarting" "$NAME"
         do_stop
         case "$?" in
           0|1)
@@ -656,8 +646,8 @@ case "$1" in
         esac
         ;;
   abort)
-        log_daemon_msg "Aborting $DESC" "$NAME"
-        log_debug "Aborting $DESC" "$NAME"
+        log_daemon_msg "Aborting" "$NAME"
+        log_debug "Aborting" "$NAME"
         do_abort
         ;;
   decommission)
@@ -690,8 +680,8 @@ case "$1" in
         exit $?
         ;;
   abort-restart)
-        log_daemon_msg "Abort-Restarting $DESC" "$NAME"
-        log_debug "Abort-Restarting $DESC" "$NAME"
+        log_daemon_msg "Abort-Restarting" "$NAME"
+        log_debug "Abort-Restarting" "$NAME"
         do_abort
         case "$?" in
           0|1)

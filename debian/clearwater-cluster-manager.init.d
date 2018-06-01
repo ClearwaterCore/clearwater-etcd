@@ -21,7 +21,6 @@
 
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC=clearwater-cluster-manager       # Introduce a short description here
 NAME=clearwater-cluster-manager       # Introduce the short server's name here (not suitable for --name)
 USER=clearwater-cluster-manager       # Username to run as
 DAEMON_DIR=/usr/share/clearwater/clearwater-cluster-manager/
@@ -39,6 +38,7 @@ SCRIPTNAME=/etc/init.d/$NAME
 # intended with interpreted scripts, as the executable will point to the interpreter".
 DAEMON=/usr/share/clearwater/bin/clearwater-cluster-manager
 ACTUAL_EXEC=/usr/share/clearwater/clearwater-cluster-manager/env/bin/python
+LEAKED_NAME_CHECK="$ACTUAL_EXEC $DAEMON"
 
 # Exit if the package is not installed
 [ -x $DAEMON ] || exit 0
@@ -53,6 +53,9 @@ ACTUAL_EXEC=/usr/share/clearwater/clearwater-cluster-manager/env/bin/python
 # Define LSB log_* functions.
 # Depend on lsb-base (>= 3.0-6) to ensure that this file is present.
 . /lib/lsb/init-functions
+
+# Pull in the common init.d functions
+. /usr/share/clearwater/utils/init-common.bash
 
 #
 # Function that starts the daemon/service
@@ -175,23 +178,11 @@ do_abort()
         return "$RETVAL"
 }
 
-# There should only be at most one cluster-manager process, and it should be the one in /var/run/clearwater-cluster-manager.pid.
-# Sanity check this, and kill and log any leaked ones.
-if [ -f $PIDFILE ] ; then
-  leaked_pids=$(pgrep -f "^$DAEMON" | grep -v $(cat $PIDFILE))
-else
-  leaked_pids=$(pgrep -f "^$DAEMON")
-fi
-if [ -n "$leaked_pids" ] ; then
-  for pid in $leaked_pids ; do
-    logger -p daemon.error -t $NAME Found leaked cluster-manager $pid \(correct is $(cat $PIDFILE)\) - killing $pid
-    kill -9 $pid
-  done
-fi
+clean_up_leaked_processes
 
 case "$1" in
   start)
-    [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC " "$NAME"
+    [ "$VERBOSE" != no ] && log_daemon_msg "Starting" "$NAME"
     do_start
     case "$?" in
 		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
@@ -199,7 +190,7 @@ case "$1" in
 	esac
   ;;
   stop)
-	[ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+	[ "$VERBOSE" != no ] && log_daemon_msg "Stopping" "$NAME"
 	do_stop
 	case "$?" in
 		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
@@ -214,7 +205,7 @@ case "$1" in
 	# If do_reload() is not implemented then leave this commented out
 	# and leave 'force-reload' as an alias for 'restart'.
 	#
-	#log_daemon_msg "Reloading $DESC" "$NAME"
+	#log_daemon_msg "Reloading" "$NAME"
 	#do_reload
 	#log_end_msg $?
 	#;;
@@ -223,7 +214,7 @@ case "$1" in
 	# If the "reload" option is implemented then remove the
 	# 'force-reload' alias
 	#
-	log_daemon_msg "Restarting $DESC" "$NAME"
+	log_daemon_msg "Restarting" "$NAME"
 	do_stop
 	case "$?" in
 	  0|1)
@@ -241,7 +232,7 @@ case "$1" in
 	esac
 	;;
   abort)
-	log_daemon_msg "Aborting $DESC" "$NAME"
+	log_daemon_msg "Aborting" "$NAME"
 	do_abort
 	;;
   decommission)
@@ -250,7 +241,7 @@ case "$1" in
 	exit $?
 	;;
   abort-restart)
-        log_daemon_msg "Abort-Restarting $DESC" "$NAME"
+        log_daemon_msg "Abort-Restarting" "$NAME"
         do_abort
         case "$?" in
           0|1)
