@@ -1,6 +1,7 @@
 #!/bin/bash
 ONE_HUNDRED_MEG=$((100 * 1024 * 1024))
 max_log_directory_size=$ONE_HUNDRED_MEG
+WEEK_COUNT=168
 . /etc/clearwater/config
 
-python2.7 /usr/share/clearwater/bin/log_cleanup.py /var/log/clearwater-cluster-manager --prefix cluster-manager --maxsize $max_log_directory_size
+/usr/share/clearwater/bin/log_cleanup.py /var/log/clearwater-cluster-manager "^cluster-manager_[0-9]{8}T[0-9]{2}0000Z\.txt$" --maxsize $max_log_directory_size --maxcount $WEEK_COUNT
