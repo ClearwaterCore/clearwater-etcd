@@ -69,7 +69,8 @@ class QueueConfig(object):
     def set_force(self, force):
         self._value[constants.JSON_FORCE] = force
 
-    # Add the node to the QUEUE list
+    # Add the node to the QUEUE list. If the node is currently being processed,
+    # we add it as second in the queue.
     def add_to_queue(self, node_id):
         # If the QUEUE is empty, first copy any errored nodes to the front of
         # the queue
@@ -77,7 +78,11 @@ class QueueConfig(object):
             self._copy_failed_nodes_to_queue()
             self._empty_json_list(constants.JSON_ERRORED)
 
-        self._add_node_to_json_list(node_id, constants.JSON_QUEUED, constants.S_QUEUED)
+        if self._node_is_being_processed(node_id):
+            self._add_node_to_json_list_at_position(node_id, constants.JSON_QUEUED, constants.S_QUEUED, 1)
+        else:
+            self._add_node_to_json_list(node_id, constants.JSON_QUEUED, constants.S_QUEUED)
+
         self._remove_node_from_json_list(node_id, constants.JSON_COMPLETED)
 
     # Move a node from QUEUED to PROCESSING
@@ -100,7 +105,7 @@ class QueueConfig(object):
                 if not self._node_in_json_list(node_id, constants.JSON_QUEUED) and \
                     not self._is_json_list_empty(constants.JSON_QUEUED):
                     self._add_node_to_json_list(node_id, constants.JSON_COMPLETED, constants.S_DONE)
-            else:
+            elif not self._node_in_json_list(node_id, constants.JSON_QUEUED):
                 self._node_failure_processing(node_id, constants.S_FAILURE)
 
             self._remove_node_from_json_list(self.node_at_the_front_of_the_queue(), constants.JSON_ERRORED)
@@ -166,6 +171,22 @@ class QueueConfig(object):
             add[constants.JSON_ID] = node_id
             add[constants.JSON_STATUS] = status
             self._value[json_list].append(add)
+
+    # Add a node+status to a json list at the specified position (indexed from 0).
+    # Any existing node+status instances are removed from the list. If the position is
+    # invalid, no change occurs.
+    def _add_node_to_json_list_at_position(self, node_id, json_list, status, position):
+        if position >= 0 and position < len(self._value[json_list]):
+            remaining = []
+            for node in self._value[json_list]:
+                if node[constants.JSON_ID] != node_id or node[constants.JSON_STATUS] != status:
+                    remaining.append(node)
+            self._value[json_list] = remaining
+
+            add = {}
+            add[constants.JSON_ID] = node_id
+            add[constants.JSON_STATUS] = status
+            self._value[json_list].insert(position, add)
 
     # Remove all entries of a node from a JSON list. If it doesn't exist
     # in the list then there's no change
