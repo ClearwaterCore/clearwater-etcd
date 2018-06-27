@@ -176,7 +176,7 @@ class QueueConfig(object):
     # Any existing node+status instances are removed from the list. If the position is
     # invalid, no change occurs.
     def _add_node_to_json_list_at_position(self, node_id, json_list, status, position):
-        if position >= 0 and position < len(self._value[json_list]):
+        if position >= 0 and position <= len(self._value[json_list]):
             remaining = []
             for node in self._value[json_list]:
                 if node[constants.JSON_ID] != node_id or node[constants.JSON_STATUS] != status:
