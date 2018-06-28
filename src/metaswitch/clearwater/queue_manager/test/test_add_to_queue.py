@@ -77,7 +77,8 @@ class AddToQueueTest(BaseQueueTest):
         self.assertEqual("10.0.0.1-node", val.get("QUEUED")[1]["ID"])
         self.assertEqual("QUEUED", val.get("QUEUED")[1]["STATUS"])
 
-    # Test that adding a node when its not already in the queue in the queued state adds the node (with more nodes in the queue already)
+    # Test that adding a node when its not already in the queue in the queued state adds the node (with more nodes in the queue already).
+    # If a node is in the queue in the processing state and we try to add it to the queue, it should be inserted second in the queue.
     @patch("etcd.Client", new=EtcdFactory)
     def test_add_to_queue_with_other_nodes_and_already_queued(self):
         self.set_initial_val("{\"FORCE\": false, \"ERRORED\": [], \"COMPLETED\": [], \"QUEUED\": [{\"ID\":\"10.0.0.1-node\",\"STATUS\":\"PROCESSING\"}, {\"ID\":\"10.0.0.2-node\",\"STATUS\":\"QUEUED\"}]}")
@@ -88,9 +89,9 @@ class AddToQueueTest(BaseQueueTest):
         self.assertEqual(0, len(val.get("COMPLETED")))
         self.assertEqual(3, len(val.get("QUEUED")))
         self.assertEqual("10.0.0.1-node", val.get("QUEUED")[0]["ID"])
-        self.assertEqual("10.0.0.2-node", val.get("QUEUED")[1]["ID"])
+        self.assertEqual("10.0.0.1-node", val.get("QUEUED")[1]["ID"])
         self.assertEqual("QUEUED", val.get("QUEUED")[1]["STATUS"])
-        self.assertEqual("10.0.0.1-node", val.get("QUEUED")[2]["ID"])
+        self.assertEqual("10.0.0.2-node", val.get("QUEUED")[2]["ID"])
         self.assertEqual("QUEUED", val.get("QUEUED")[2]["STATUS"])
 
     # Test that adding the node succeeds for a non-empty queue that its not already in

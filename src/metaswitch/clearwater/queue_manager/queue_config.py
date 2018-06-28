@@ -105,7 +105,7 @@ class QueueConfig(object):
                 if not self._node_in_json_list(node_id, constants.JSON_QUEUED) and \
                     not self._is_json_list_empty(constants.JSON_QUEUED):
                     self._add_node_to_json_list(node_id, constants.JSON_COMPLETED, constants.S_DONE)
-            elif not self._node_in_json_list(node_id, constants.JSON_QUEUED):
+            elif self.node_at_the_front_of_the_queue() != node_id:
                 self._node_failure_processing(node_id, constants.S_FAILURE)
 
             self._remove_node_from_json_list(self.node_at_the_front_of_the_queue(), constants.JSON_ERRORED)
