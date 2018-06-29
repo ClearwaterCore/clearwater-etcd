@@ -79,7 +79,7 @@ class QueueConfig(object):
             self._empty_json_list(constants.JSON_ERRORED)
 
         if self._node_is_being_processed(node_id):
-            self._add_node_to_json_list_at_position(node_id, constants.JSON_QUEUED, constants.S_QUEUED, 1)
+            self._add_node_to_json_list(node_id, constants.JSON_QUEUED, constants.S_QUEUED, 1)
         else:
             self._add_node_to_json_list(node_id, constants.JSON_QUEUED, constants.S_QUEUED)
 
@@ -163,30 +163,36 @@ class QueueConfig(object):
             if node[constants.JSON_STATUS] == constants.S_FAILURE:
                 self._add_node_to_json_list(node[constants.JSON_ID], constants.JSON_QUEUED, constants.S_QUEUED)
 
-    # Add a node+status to a json list. If the node+status already exists then
-    # there's no change
-    def _add_node_to_json_list(self, node_id, json_list, status):
-        if status not in self._node_statuses_in_json_list(node_id, json_list):
-            add = {}
-            add[constants.JSON_ID] = node_id
-            add[constants.JSON_STATUS] = status
-            self._value[json_list].append(add)
+    # Add a node+status to a json list. If position is specified, the node will be inserted
+    # at that position (indexed from 0), unless node+status is already in the list before the
+    # specified position. If inserted, any instances of node+status further along the list will
+    # be removed to avoid duplicates. If the specified position is out of bounds or no position
+    # is specified, the node will be appended to the list, provided node+status isn't in the
+    # list already.
+    def _add_node_to_json_list(self, node_id, json_list, status, position=-1):
+        add = {}
+        add[constants.JSON_ID] = node_id
+        add[constants.JSON_STATUS] = status
 
-    # Add a node+status to a json list at the specified position (indexed from 0).
-    # Any existing node+status instances are removed from the list. If the position is
-    # invalid, no change occurs.
-    def _add_node_to_json_list_at_position(self, node_id, json_list, status, position):
-        if position >= 0 and position <= len(self._value[json_list]):
+        if position >=0:
             remaining = []
+            count = 0
+            insert_node = True
             for node in self._value[json_list]:
-                if node[constants.JSON_ID] != node_id or node[constants.JSON_STATUS] != status:
+                if (node[constants.JSON_ID] != node_id) or (node[constants.JSON_STATUS] != status):
                     remaining.append(node)
-            self._value[json_list] = remaining
+                elif count <= position:
+                    insert_node = False
+                    remaining.append(node)
 
-            add = {}
-            add[constants.JSON_ID] = node_id
-            add[constants.JSON_STATUS] = status
-            self._value[json_list].insert(position, add)
+                count += 1
+
+            if insert_node:
+                remaining.insert(min(position, len(remaining)), add)
+
+            self._value[json_list] = remaining
+        elif status not in self._node_statuses_in_json_list(node_id, json_list):
+            self._value[json_list].append(add)
 
     # Remove all entries of a node from a JSON list. If it doesn't exist
     # in the list then there's no change
