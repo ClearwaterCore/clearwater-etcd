@@ -163,12 +163,12 @@ class QueueConfig(object):
             if node[constants.JSON_STATUS] == constants.S_FAILURE:
                 self._add_node_to_json_list(node[constants.JSON_ID], constants.JSON_QUEUED, constants.S_QUEUED)
 
-    # Add a node+status to a json list. If position is specified, the node will be inserted
-    # at that position (indexed from 0), unless node+status is already in the list before the
-    # specified position. If inserted, any instances of node+status further along the list will
-    # be removed to avoid duplicates. If the specified position is out of bounds or no position
-    # is specified, the node will be appended to the list, provided node+status isn't in the
-    # list already.
+    # Add a node+status to a json list. If position is specified, the node will be
+    # inserted at that position (indexed from 0), unless node+status is already in the
+    # list before the specified position. If inserted, any instances of node+status
+    # further along the list will be removed to avoid duplicates. If the specified
+    # position is out of bounds or no position is specified, the node will be appended
+    # to the list, provided node+status isn't in the list already.
     def _add_node_to_json_list(self, node_id, json_list, status, position=-1):
         add = {}
         add[constants.JSON_ID] = node_id
@@ -179,7 +179,8 @@ class QueueConfig(object):
             count = 0
             insert_node = True
             for node in self._value[json_list]:
-                if (node[constants.JSON_ID] != node_id) or (node[constants.JSON_STATUS] != status):
+                if (node[constants.JSON_ID] != node_id) or \ 
+                   (node[constants.JSON_STATUS] != status):
                     remaining.append(node)
                 elif count <= position:
                     insert_node = False
