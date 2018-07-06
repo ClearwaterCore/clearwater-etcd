@@ -105,8 +105,12 @@ class QueueConfig(object):
                 if not self._node_in_json_list(node_id, constants.JSON_QUEUED) and \
                     not self._is_json_list_empty(constants.JSON_QUEUED):
                     self._add_node_to_json_list(node_id, constants.JSON_COMPLETED, constants.S_DONE)
-            elif self.node_at_the_front_of_the_queue() != node_id:
+            elif not self._node_in_json_list(node_id, constants.JSON_QUEUED):
                 self._node_failure_processing(node_id, constants.S_FAILURE)
+            else:
+                # This is defensive code to ensure that if the node is in the queue again,
+                # it is at the front of the queue
+                self._add_node_to_json_list(node_id, constants.JSON_QUEUED, constants.S_QUEUED, 0)
 
             self._remove_node_from_json_list(self.node_at_the_front_of_the_queue(), constants.JSON_ERRORED)
 
@@ -146,17 +150,6 @@ class QueueConfig(object):
     def _empty_json_list(self, json_list_to_empty):
         self._value[json_list_to_empty][:] = []
 
-    # Get the statuses of a node in a json list. There can be
-    # multiple statuses of a node in the QUEUED list.
-    def _node_statuses_in_json_list(self, node_id, list_to_check):
-        statuses = []
-
-        for val in self._value[list_to_check]:
-            if val[constants.JSON_ID] == node_id:
-                statuses.append(val[constants.JSON_STATUS])
-
-        return statuses
-
     # Copy any failed nodes from the ERRORED list to the QUEUE list
     def _copy_failed_nodes_to_queue(self):
         for node in self._value[constants.JSON_ERRORED]:
@@ -165,35 +158,34 @@ class QueueConfig(object):
 
     # Add a node+status to a json list. If position is specified, the node will be
     # inserted at that position (indexed from 0), unless node+status is already in the
-    # list before the specified position. If inserted, any instances of node+status
-    # further along the list will be removed to avoid duplicates. If the specified
-    # position is out of bounds or no position is specified, the node will be appended
-    # to the list, provided node+status isn't in the list already.
+    # list before the specified position. If the specified position is out of bounds
+    # or no position is specified, the node will be appended to the list, provided 
+    # node+status isn't in the list already. In any case, any instances of node+status
+    # after the first instance will be removed from the list to avoid duplicates.
     def _add_node_to_json_list(self, node_id, json_list, status, position=-1):
         add = {}
         add[constants.JSON_ID] = node_id
         add[constants.JSON_STATUS] = status
 
-        if position >=0:
-            remaining = []
-            count = 0
-            insert_node = True
-            for node in self._value[json_list]:
-                if (node[constants.JSON_ID] != node_id) or \ 
-                   (node[constants.JSON_STATUS] != status):
-                    remaining.append(node)
-                elif count <= position:
-                    insert_node = False
-                    remaining.append(node)
+        position = position if position >= 0 else len(self._value[json_list])
 
-                count += 1
+        remaining = []
+        count = 0
+        seen_node = False
+        for node in self._value[json_list]:
+            if (node[constants.JSON_ID] != node_id) or \
+               (node[constants.JSON_STATUS] != status):
+                remaining.append(node)
+            elif (count <= position) and not seen_node:
+                seen_node = True
+                remaining.append(node)
 
-            if insert_node:
-                remaining.insert(min(position, len(remaining)), add)
+            count += 1
 
-            self._value[json_list] = remaining
-        elif status not in self._node_statuses_in_json_list(node_id, json_list):
-            self._value[json_list].append(add)
+        if not seen_node:
+            remaining.insert(min(position, len(remaining)), add)
+
+        self._value[json_list] = remaining
 
     # Remove all entries of a node from a JSON list. If it doesn't exist
     # in the list then there's no change
