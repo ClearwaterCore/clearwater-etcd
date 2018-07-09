@@ -18,7 +18,8 @@ import os
 from threading import Lock
 from metaswitch.common.alarms import alarm_manager
 from alarm_constants import GLOBAL_CONFIG_NOT_SYNCHED
-from . import pdlogs
+# We don't use PDlogs at the moment - see the comment in check_alarm
+# from . import pdlogs
 
 _log = logging.getLogger("config_manager.alarms")
 
@@ -42,13 +43,24 @@ class ConfigAlarm(object):
             self.check_alarm()
 
     def check_alarm(self):
-        if all(self._files.values()):
-            self._alarm.clear()
-        else:
-            out_of_sync = [filename for filename in self._files if not
-                    self._files[filename]]
+        # The config manager alarm is currently disabled - this function now
+        # just always ensures that the alarm is cleared.
+        #
+        # The function has been disabled as we keep hitting bugs in it - and
+        # they're not worth fixing right now as the alarm itself is pretty
+        # useless. This commenting out is temporary - there is work in progress
+        # to fix this up.
+        self._alarm.clear()
 
-            _log.warning("Config is not in sync - the following files are "
-                "out of sync: {}".format(out_of_sync))
-            self._alarm.set()
-            pdlogs.NO_SHARED_CONFIG_ALARM.log()
+        #if all(self._files.values()):
+        #    self._alarm.clear()
+        #else:
+        #    out_of_sync = [filename for filename in self._files if not
+        #            self._files[filename]]
+        #
+        #    _log.warning("Config is not in sync - the following files are "
+        #        "out of sync: {}".format(out_of_sync))
+        #
+        #    # The config alarms
+        #    self._alarm.set()
+        #    pdlogs.NO_SHARED_CONFIG_ALARM.log()
