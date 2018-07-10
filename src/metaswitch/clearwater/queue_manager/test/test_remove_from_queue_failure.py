@@ -37,7 +37,7 @@ class RemoveFromQueueFailureTest(BaseQueueTest):
         if not success:
             print "Failed to successfully remove the node from the queue"
 
-    # Tests that marking a node as failed when it is not the next node in the queue moves it to the ERRORED list and stops the queue operation when FORCE is false
+    # Tests that marking a node as failed when it isn't in the queue again moves it to the ERRORED list and stops the queue operation when FORCE is false
     @patch("etcd.Client", new=EtcdFactory)
     def test_remove_from_queue_after_failure_no_force(self):
         self.set_initial_val("{\"FORCE\": false, \"ERRORED\": [], \"COMPLETED\": [{\"ID\":\"10.0.0.3-node\",\"STATUS\":\"DONE\"}], \"QUEUED\": [{\"ID\":\"10.0.0.1-node\",\"STATUS\":\"PROCESSING\"}, {\"ID\":\"10.0.0.2-node\",\"STATUS\":\"QUEUED\"}]}")
@@ -73,8 +73,8 @@ class RemoveFromQueueFailureTest(BaseQueueTest):
         self.assertEqual(1, len(val.get("QUEUED")))
 
     @patch("etcd.Client", new=EtcdFactory)
-    # Tests that marking a node as failed when it is not again in the queue moves it to the ERRORED list and removes the next queued node from the ERRORED list when FORCE is true
-    def test_remove_from_queue_after_failure_not_next_in_queue_force(self):
+    # Tests that marking a node as failed when it is not in the queue again moves it to the ERRORED list and removes the next queued node from the ERRORED list when FORCE is true
+    def test_remove_from_queue_after_failure_not_in_queue_force(self):
         self.set_initial_val("{\"FORCE\": true, \"ERRORED\": [{\"ID\":\"10.0.0.2-node\",\"STATUS\":\"FAILURE\"}, {\"ID\":\"10.0.0.3-node\",\"STATUS\":\"FAILURE\"}], \"COMPLETED\": [], \"QUEUED\": [{\"ID\":\"10.0.0.1-node\",\"STATUS\":\"PROCESSING\"}, {\"ID\":\"10.0.0.2-node\",\"STATUS\":\"QUEUED\"}]}")
         self.remove_from_queue_helper()
 
