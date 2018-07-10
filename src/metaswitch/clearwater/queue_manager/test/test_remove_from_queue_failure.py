@@ -37,10 +37,10 @@ class RemoveFromQueueFailureTest(BaseQueueTest):
         if not success:
             print "Failed to successfully remove the node from the queue"
 
-    # Tests that marking a node as failed moves it to the ERRORED list
+    # Tests that marking a node as failed when it isn't in the queue again moves it to the ERRORED list and stops the queue operation when FORCE is false
     @patch("etcd.Client", new=EtcdFactory)
-    def test_remove_from_queue_after_failure(self):
-        self.set_initial_val("{\"FORCE\": false, \"ERRORED\": [], \"COMPLETED\": [], \"QUEUED\": [{\"ID\":\"10.0.0.1-node\",\"STATUS\":\"PROCESSING\"}]}")
+    def test_remove_from_queue_after_failure_no_force(self):
+        self.set_initial_val("{\"FORCE\": false, \"ERRORED\": [], \"COMPLETED\": [{\"ID\":\"10.0.0.3-node\",\"STATUS\":\"DONE\"}], \"QUEUED\": [{\"ID\":\"10.0.0.1-node\",\"STATUS\":\"PROCESSING\"}, {\"ID\":\"10.0.0.2-node\",\"STATUS\":\"QUEUED\"}]}")
         self.remove_from_queue_helper()
 
         val = json.loads(self._e._client.read("/clearwater/local/configuration/queue_test").value)
@@ -50,18 +50,18 @@ class RemoveFromQueueFailureTest(BaseQueueTest):
         self.assertEqual("10.0.0.1-node", val.get("ERRORED")[0]["ID"])
         self.assertEqual("FAILURE", val.get("ERRORED")[0]["STATUS"])
 
-    # Tests that marking a node as failed but when it is also the next node in the queue doesn't set it as errored
+    # Tests that marking a node as failed but when it is also the next node in the queue doesn't set it as ERRORED when FORCE is false
     @patch("etcd.Client", new=EtcdFactory)
-    def test_remove_from_queue_after_failure_no_force(self):
+    def test_remove_from_queue_after_failure_next_in_queue_no_force(self):
         self.set_initial_val("{\"FORCE\": false, \"ERRORED\": [], \"COMPLETED\": [{\"ID\":\"10.0.0.3-node\",\"STATUS\":\"DONE\"}, {\"ID\":\"10.0.0.2-node\",\"STATUS\":\"DONE\"}], \"QUEUED\": [{\"ID\":\"10.0.0.1-node\",\"STATUS\":\"PROCESSING\"}, {\"ID\":\"10.0.0.1-node\",\"STATUS\":\"QUEUED\"}]}")
         self.remove_from_queue_helper()
 
         val = json.loads(self._e._client.read("/clearwater/local/configuration/queue_test").value)
-        self.assertEqual(1, len(val.get("ERRORED")))
-        self.assertEqual(0, len(val.get("COMPLETED")))
-        self.assertEqual(0, len(val.get("QUEUED")))
+        self.assertEqual(0, len(val.get("ERRORED")))
+        self.assertEqual(2, len(val.get("COMPLETED")))
+        self.assertEqual(1, len(val.get("QUEUED")))
 
-    # Tests that marking a node as failed but when it is also the next node in the queue doesn't set it as errored
+    # Tests that marking a node as failed but when it is also the next node in the queue doesn't set it as ERRORED when FORCE is true
     @patch("etcd.Client", new=EtcdFactory)
     def test_remove_from_queue_after_failure_force(self):
         self.set_initial_val("{\"FORCE\": true, \"ERRORED\": [{\"ID\":\"10.0.0.4-node\",\"STATUS\":\"UNRESPONSIVE\"}, {\"ID\":\"10.0.0.5-node\",\"STATUS\":\"FAILURE\"}], \"COMPLETED\": [{\"ID\":\"10.0.0.3-node\",\"STATUS\":\"DONE\"}, {\"ID\":\"10.0.0.2-node\",\"STATUS\":\"DONE\"}], \"QUEUED\": [{\"ID\":\"10.0.0.1-node\",\"STATUS\":\"PROCESSING\"}, {\"ID\":\"10.0.0.1-node\",\"STATUS\":\"QUEUED\"}]}")
@@ -73,17 +73,18 @@ class RemoveFromQueueFailureTest(BaseQueueTest):
         self.assertEqual(1, len(val.get("QUEUED")))
 
     @patch("etcd.Client", new=EtcdFactory)
-    # Tests that marking a node as failed when it is in the queued list but not the next node does move it to the ERRORED list
-    def test_remove_from_queue_after_failure_not_next_in_queue_force(self):
-        self.set_initial_val("{\"FORCE\": true, \"ERRORED\": [], \"COMPLETED\": [], \"QUEUED\": [{\"ID\":\"10.0.0.1-node\",\"STATUS\":\"PROCESSING\"}, {\"ID\":\"10.0.0.2-node\",\"STATUS\":\"QUEUED\"}, {\"ID\":\"10.0.0.1-node\",\"STATUS\":\"QUEUED\"}]}")
+    # Tests that marking a node as failed when it is not in the queue again moves it to the ERRORED list and removes the next queued node from the ERRORED list when FORCE is true
+    def test_remove_from_queue_after_failure_not_in_queue_force(self):
+        self.set_initial_val("{\"FORCE\": true, \"ERRORED\": [{\"ID\":\"10.0.0.2-node\",\"STATUS\":\"FAILURE\"}, {\"ID\":\"10.0.0.3-node\",\"STATUS\":\"FAILURE\"}], \"COMPLETED\": [], \"QUEUED\": [{\"ID\":\"10.0.0.1-node\",\"STATUS\":\"PROCESSING\"}, {\"ID\":\"10.0.0.2-node\",\"STATUS\":\"QUEUED\"}]}")
         self.remove_from_queue_helper()
 
         val = json.loads(self._e._client.read("/clearwater/local/configuration/queue_test").value)
-        self.assertEqual(1, len(val.get("ERRORED")))
         self.assertEqual(0, len(val.get("COMPLETED")))
-        self.assertEqual(2, len(val.get("QUEUED")))
-        self.assertEqual("10.0.0.1-node", val.get("ERRORED")[0]["ID"])
-        self.assertEqual("FAILURE", val.get("ERRORED")[0]["STATUS"])
+        self.assertEqual(1, len(val.get("QUEUED")))
+        self.assertEqual(2, len(val.get("ERRORED")))
+        self.assertEqual("10.0.0.3-node", val.get("ERRORED")[0]["ID"])
+        self.assertEqual("10.0.0.1-node", val.get("ERRORED")[1]["ID"])
+        self.assertEqual("FAILURE", val.get("ERRORED")[1]["STATUS"])
 
     # Tests that marking a node as failed when it isn't the front of the queue doesn't change the JSON
     @patch("etcd.Client", new=EtcdFactory)

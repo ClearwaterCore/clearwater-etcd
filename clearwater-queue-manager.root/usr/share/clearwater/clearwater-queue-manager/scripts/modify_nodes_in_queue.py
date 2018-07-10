@@ -56,7 +56,7 @@ elif operation == "remove_success":
 
     _log.debug("Node successfully removed")
 elif operation == "remove_failure":
-    _log.debug("Removing %s from front of queue and marking as errored" % (local_ip + "-" + node_type))
+    _log.debug("Removing %s from front of queue. The node will be marked as failed unless it is next in the queue." % (local_ip + "-" + node_type))
 
     while queue_syncer.remove_from_queue(False) != WriteToEtcdStatus.SUCCESS:
         sleep(2)
