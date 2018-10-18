@@ -4,4 +4,4 @@ max_log_directory_size=$ONE_HUNDRED_MEG
 WEEK_COUNT=168
 . /etc/clearwater/config
 
-/usr/share/clearwater/bin/log_cleanup.py /var/log/clearwater-queue-manager "^queue-manager_[0-9]{8}T[0-9]{2}0000Z\.txt$" --maxsize $max_log_directory_size --maxcount $WEEK_COUNT
+nice -19 /usr/share/clearwater/bin/log_cleanup.py /var/log/clearwater-queue-manager "^queue-manager_[0-9]{8}T[0-9]{2}0000Z\.txt$" --maxsize $max_log_directory_size --maxcount $WEEK_COUNT
