@@ -510,7 +510,10 @@ do_abort()
         #   1 if daemon was already stopped
         #   2 if daemon could not be stopped
         #   other if a failure occurred
-        start-stop-daemon --stop --retry=ABRT/60/KILL/5 --pidfile $PIDFILE --startas $DAEMONWRAPPER
+
+        # Wait for up to 5 minutes for the core file to be compressed
+        # (if we kill it too early, the core file will be truncated and therefore useless).
+        start-stop-daemon --stop --retry=ABRT/300/KILL/5 --pidfile $PIDFILE --startas $DAEMONWRAPPER
         RETVAL="$?"
         # If the abort failed, it may be because the PID in PIDFILE doesn't match the right process
         # In this window condition, we may not recover, so remove the PIDFILE to get it running
